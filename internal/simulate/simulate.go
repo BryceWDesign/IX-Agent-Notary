@@ -3,6 +3,7 @@ package simulate
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"ix-agent-notary/internal/canon"
@@ -29,6 +30,12 @@ type Options struct {
 
 	SignKeyPath string
 	SignKeyID   string
+
+	// Optional governance signal:
+	// If true, embed a single structured approval record in policy.approvals[].
+	IncludeApproval bool
+	ApproverID      string // e.g. user/email/IAM principal
+	ApprovalType    string // human | ticket | breakglass (matches schema)
 }
 
 func Run(opts Options) error {
@@ -57,6 +64,18 @@ func Run(opts Options) error {
 		opts.SignKeyID = "dev-key-001"
 	}
 
+	if opts.IncludeApproval {
+		if strings.TrimSpace(opts.ApproverID) == "" {
+			opts.ApproverID = "user:approver-demo"
+		}
+		if strings.TrimSpace(opts.ApprovalType) == "" {
+			opts.ApprovalType = "human"
+		}
+		if !isValidApprovalType(opts.ApprovalType) {
+			return fmt.Errorf("invalid ApprovalType %q (allowed: human|ticket|breakglass)", opts.ApprovalType)
+		}
+	}
+
 	p, err := policy.Load(opts.PolicyPath)
 	if err != nil {
 		return err
@@ -80,6 +99,15 @@ func Run(opts Options) error {
 	}
 
 	return receipt.Write(opts.OutPath, r)
+}
+
+func isValidApprovalType(t string) bool {
+	switch strings.ToLower(strings.TrimSpace(t)) {
+	case "human", "ticket", "breakglass":
+		return true
+	default:
+		return false
+	}
 }
 
 // buildReceipt constructs a receipt with policy decision + simulated result.
@@ -138,12 +166,42 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 		})
 	}
 
+	approvals := []any{}
+	if opts.IncludeApproval {
+		aid, err := id.NewUUIDv4()
+		if err != nil {
+			return nil, err
+		}
+
+		approvals = append(approvals, map[string]any{
+			"approval_id": aid,
+			"type":        strings.ToLower(strings.TrimSpace(opts.ApprovalType)),
+			"status":      "approved",
+			"approver": map[string]any{
+				"type":    "user",
+				"id":      strings.TrimSpace(opts.ApproverID),
+				"display": "Demo Approver",
+			},
+			"scope": map[string]any{
+				"kind":      opts.Kind,
+				"tool":      opts.Tool,
+				"operation": opts.Operation,
+				"resource":  opts.Path,
+			},
+			"time": map[string]any{
+				"requested_at": t,
+				"decided_at":   t,
+			},
+			"notes": "Simulated approval record (demo).",
+		})
+	}
+
 	policyObj := map[string]any{
 		"policy_id": dec.PolicyID,
 		"decision":  dec.Decision,
 		"reason":    dec.Reason,
 		"rules":     rules,
-		"approvals": []any{},
+		"approvals": approvals,
 		"context_hashes": map[string]any{
 			"requested_path": reqPathHash,
 		},
