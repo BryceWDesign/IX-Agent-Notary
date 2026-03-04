@@ -1,24 +1,26 @@
 package verify
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
+
+	"ix-agent-notary/internal/receipt"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 type Options struct {
-	ReceiptPath string
-	SchemaPath  string
+	ReceiptPath  string
+	SchemaPath   string
+	StrictHashes bool
 }
 
 type Result struct {
 	ReceiptPath string
 	SchemaPath  string
+	Hashes      receipt.HashCheck
 }
 
 func Run(opts Options) (*Result, error) {
@@ -34,22 +36,26 @@ func Run(opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	inst, err := loadJSON(opts.ReceiptPath)
+	r, err := receipt.Load(opts.ReceiptPath)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := schema.Validate(inst); err != nil {
+	if err := schema.Validate(any(r)); err != nil {
 		return nil, fmt.Errorf("schema validation failed: %w", err)
+	}
+
+	hc, err := receipt.ValidateCoreHashes(r, receipt.HashValidationOptions{Strict: opts.StrictHashes})
+	if err != nil {
+		return nil, err
 	}
 
 	// NOTE: cryptographic signature verification is intentionally not implemented in this commit.
 	// Upcoming commits will:
-	// - canonicalize receipt JSON (RFC8785-JCS)
 	// - verify integrity.signature.value against integrity.signature.key_id
-	// - validate receipt chaining (parent_receipt_id) and hashes
+	// - validate receipt chaining (parent_receipt_id) and optional artifact hashes
 
-	return &Result{ReceiptPath: opts.ReceiptPath, SchemaPath: opts.SchemaPath}, nil
+	return &Result{ReceiptPath: opts.ReceiptPath, SchemaPath: opts.SchemaPath, Hashes: *hc}, nil
 }
 
 func compileSchema(schemaPath string) (*jsonschema.Schema, error) {
@@ -79,24 +85,4 @@ func compileSchema(schemaPath string) (*jsonschema.Schema, error) {
 	}
 
 	return s, nil
-}
-
-func loadJSON(path string) (any, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("open json: %w", err)
-	}
-	defer f.Close()
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return nil, fmt.Errorf("read json: %w", err)
-	}
-
-	var v any
-	if err := json.Unmarshal(b, &v); err != nil {
-		return nil, fmt.Errorf("parse json: %w", err)
-	}
-
-	return v, nil
 }
