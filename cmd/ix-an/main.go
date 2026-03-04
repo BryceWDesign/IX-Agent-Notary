@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"ix-agent-notary/internal/receipt"
 	"ix-agent-notary/internal/sign"
 	"ix-agent-notary/internal/simulate"
+	"ix-agent-notary/internal/store"
 	"ix-agent-notary/internal/verify"
 )
 
@@ -19,10 +21,14 @@ func main() {
 	switch os.Args[1] {
 	case "verify":
 		verifyCmd(os.Args[2:])
+	case "verify-dir":
+		verifyDirCmd(os.Args[2:])
 	case "sign":
 		signCmd(os.Args[2:])
 	case "simulate":
 		simulateCmd(os.Args[2:])
+	case "store":
+		storeCmd(os.Args[2:])
 	case "help", "-h", "--help":
 		usage()
 	default:
@@ -92,6 +98,47 @@ func verifyCmd(args []string) {
 	}
 
 	fmt.Printf("OK: %s\n", joinNotes(notes))
+}
+
+func verifyDirCmd(args []string) {
+	fs := flag.NewFlagSet("verify-dir", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+
+	schemaPath := fs.String("schema", "", "path to receipt JSON Schema (default: spec/receipt.schema.json)")
+	pubKeyPath := fs.String("pubkey", "", "optional path to an ed25519 public key (base64url). Overrides key lookup by key_id.")
+	strictChain := fs.Bool("strict-chain", true, "verify parent_receipt_id linkage for all receipts found (default: true)")
+
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+
+	if fs.NArg() != 1 {
+		fmt.Fprintln(os.Stderr, "verify-dir requires exactly 1 argument: <dir>")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Example:")
+		fmt.Fprintln(os.Stderr, "  ix-an verify-dir examples/receipts")
+		os.Exit(2)
+	}
+
+	dir := fs.Arg(0)
+
+	res, err := verify.VerifyDir(verify.DirOptions{
+		Dir:              dir,
+		SchemaPath:       *schemaPath,
+		PublicKeyPath:    *pubKeyPath,
+		StrictHashes:     true,
+		StrictSignature:  true,
+		StrictChain:      *strictChain,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: %v\n", err)
+		for _, f := range res.Failures {
+			fmt.Fprintf(os.Stderr, "  - %s\n", f)
+		}
+		os.Exit(1)
+	}
+
+	fmt.Printf("OK: verified %d receipts (%d ok)\n", res.Total, res.OK)
 }
 
 func signCmd(args []string) {
@@ -179,6 +226,162 @@ func simulateCmd(args []string) {
 	fmt.Println("OK: wrote simulated signed receipt:", *outPath)
 }
 
+func storeCmd(args []string) {
+	if len(args) < 1 {
+		fmt.Fprintln(os.Stderr, "store requires a subcommand: append | verify-log")
+		os.Exit(2)
+	}
+
+	switch args[0] {
+	case "append":
+		storeAppendCmd(args[1:])
+	case "verify-log":
+		storeVerifyLogCmd(args[1:])
+	default:
+		fmt.Fprintf(os.Stderr, "unknown store subcommand: %s\n", args[0])
+		os.Exit(2)
+	}
+}
+
+func storeAppendCmd(args []string) {
+	fs := flag.NewFlagSet("store append", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+
+	inPath := fs.String("in", "", "input receipt JSON path (required)")
+	logPath := fs.String("log", "", "append-only JSONL log path (required)")
+	schemaPath := fs.String("schema", "", "path to receipt JSON Schema (default: spec/receipt.schema.json)")
+	pubKeyPath := fs.String("pubkey", "", "optional path to an ed25519 public key (base64url). Overrides key lookup by key_id.")
+
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+
+	if *inPath == "" || *logPath == "" {
+		fmt.Fprintln(os.Stderr, "store append requires --in and --log")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Example:")
+		fmt.Fprintln(os.Stderr, "  ix-an store append --in examples/receipts/denied.receipt.json --log /tmp/receipts.jsonl")
+		os.Exit(2)
+	}
+
+	// Strictly verify before ingest.
+	if _, err := verify.Run(verify.Options{
+		ReceiptPath:     *inPath,
+		SchemaPath:      *schemaPath,
+		StrictHashes:    true,
+		StrictSignature: true,
+		PublicKeyPathOpt:*pubKeyPath,
+	}); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: receipt did not verify strictly; not ingesting: %v\n", err)
+		os.Exit(1)
+	}
+
+	r, err := receipt.Load(*inPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := store.AppendJSONL(*logPath, r); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("OK: appended to log:", *logPath)
+}
+
+func storeVerifyLogCmd(args []string) {
+	fs := flag.NewFlagSet("store verify-log", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+
+	logPath := fs.String("log", "", "append-only JSONL log path (required)")
+	schemaPath := fs.String("schema", "", "path to receipt JSON Schema (default: spec/receipt.schema.json)")
+	pubKeyPath := fs.String("pubkey", "", "optional path to an ed25519 public key (base64url). Overrides key lookup by key_id.")
+	strictChain := fs.Bool("strict-chain", true, "verify parent_receipt_id linkage within the log (default: true)")
+
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+
+	if *logPath == "" {
+		fmt.Fprintln(os.Stderr, "store verify-log requires --log")
+		fmt.Fprintln(os.Stderr)
+		fmt.Fprintln(os.Stderr, "Example:")
+		fmt.Fprintln(os.Stderr, "  ix-an store verify-log --log /tmp/receipts.jsonl")
+		os.Exit(2)
+	}
+
+	if *schemaPath == "" {
+		*schemaPath = "spec/receipt.schema.json"
+	}
+
+	schema, err := verify.CompileSchema(*schemaPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: %v\n", err)
+		os.Exit(1)
+	}
+
+	recs, err := store.ReadAllJSONL(*logPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: %v\n", err)
+		os.Exit(1)
+	}
+
+	byID := map[string]receipt.Receipt{}
+	for i, r := range recs {
+		rid, _ := r["receipt_id"].(string)
+		if rid == "" {
+			fmt.Fprintf(os.Stderr, "FAIL: log entry %d missing receipt_id\n", i+1)
+			os.Exit(1)
+		}
+		if _, exists := byID[rid]; exists {
+			fmt.Fprintf(os.Stderr, "FAIL: duplicate receipt_id in log: %s\n", rid)
+			os.Exit(1)
+		}
+		byID[rid] = r
+	}
+
+	// Strictly validate all receipts.
+	for rid, r := range byID {
+		_, _, verr := verify.ValidateReceiptObject(r, schema, verify.ReceiptValidationOptions{
+			StrictHashes:    true,
+			StrictSignature: true,
+			PublicKeyPath:   *pubKeyPath,
+		})
+		if verr != nil {
+			fmt.Fprintf(os.Stderr, "FAIL: receipt %s failed verify: %v\n", rid, verr)
+			os.Exit(1)
+		}
+	}
+
+	if *strictChain {
+		resolver, err := receipt.NewMapResolver(byID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "FAIL: %v\n", err)
+			os.Exit(1)
+		}
+
+		validateParent := func(r receipt.Receipt) error {
+			_, _, verr := verify.ValidateReceiptObject(r, schema, verify.ReceiptValidationOptions{
+				StrictHashes:    true,
+				StrictSignature: true,
+				PublicKeyPath:   *pubKeyPath,
+			})
+			return verr
+		}
+
+		for rid, r := range byID {
+			_, cerr := receipt.ValidateChain(r, resolver, validateParent, receipt.ChainValidationOptions{Strict: true})
+			if cerr != nil {
+				fmt.Fprintf(os.Stderr, "FAIL: chain verify failed for receipt %s: %v\n", rid, cerr)
+				os.Exit(1)
+			}
+		}
+	}
+
+	fmt.Printf("OK: verified log (%d receipts)\n", len(byID))
+}
+
 func usage() {
 	fmt.Fprintln(os.Stderr, "IX-Agent-Notary (ix-an)")
 	fmt.Fprintln(os.Stderr)
@@ -186,10 +389,12 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  ix-an <command> [options]")
 	fmt.Fprintln(os.Stderr)
 	fmt.Fprintln(os.Stderr, "Commands:")
-	fmt.Fprintln(os.Stderr, "  verify     Validate a receipt (schema + hashes + signature + optional chain)")
-	fmt.Fprintln(os.Stderr, "  sign       Compute hashes + sign a receipt (ed25519)")
-	fmt.Fprintln(os.Stderr, "  simulate   Simulate a tool action through PolicyGate and emit a signed receipt")
-	fmt.Fprintln(os.Stderr, "  help       Show this help")
+	fmt.Fprintln(os.Stderr, "  verify        Validate a receipt (schema + hashes + signature + optional chain)")
+	fmt.Fprintln(os.Stderr, "  verify-dir    Validate all receipts in a directory (strict by default)")
+	fmt.Fprintln(os.Stderr, "  sign          Compute hashes + sign a receipt (ed25519)")
+	fmt.Fprintln(os.Stderr, "  simulate      Simulate a tool action through PolicyGate and emit a signed receipt")
+	fmt.Fprintln(os.Stderr, "  store         Append receipts to an append-only JSONL log and verify logs")
+	fmt.Fprintln(os.Stderr, "  help          Show this help")
 	fmt.Fprintln(os.Stderr)
 }
 
