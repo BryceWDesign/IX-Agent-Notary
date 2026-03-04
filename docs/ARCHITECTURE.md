@@ -1,47 +1,38 @@
 # IX-Agent-Notary — Architecture
 
 ## Problem statement
-When an agent can call tools (code, CI/CD, cloud APIs, ticketing, secrets, production ops), the enterprise-grade question is:
+When an agent can call tools (code, CI/CD, cloud APIs, ticketing, secrets, production ops), the enterprise question is:
 
-**What exactly did the agent do, under what policy, with what approvals—and can we prove it?**
+**What exactly did the agent do, under what policy, with what approvals — and can we prove it?**
 
 IX-Agent-Notary exists to make **policy enforcement + verifiable evidence** first-class.
 
 ---
 
 ## Design goals
-1. **Tamper-evident receipts** for every meaningful action (inputs, policy decision, outputs, timing, identity, linkage).
-2. **Independent verification**: any verifier can validate receipts without “trusting the agent.”
-3. **PolicyGate enforcement**: tools don’t run unless allowed by policy (least privilege, allowlists).
-4. **Small trusted computing base (TCB)**: keep the “trusted” runtime narrow and auditable.
-5. **Correlation-friendly**: trace IDs and linkage across steps (receipt chains).
-
-## Non-goals
-- Building a full agent framework or chat UI.
-- Claiming perfect prevention of all misuse (the goal is survivable integration with strong evidence).
-- Replacing IAM; this complements IAM by producing **action-level** evidence.
+1. **Tamper-evident receipts** for every meaningful action (inputs, policy decision, outputs, timing, identity).
+2. **Strict verification** so consumers can reject placeholders or unverifiable evidence.
+3. **Small trusted boundary**: keep the enforcement + receipt/signing core reviewable.
+4. **Composable storage**: directory store or append-only JSONL log patterns.
 
 ---
 
-## High-level components
-- **Agent / Tool Caller (untrusted)**  
-  Orchestrates tasks, requests tool usage, and consumes receipts.
-
-- **IX-Agent-Notary Runtime (trusted boundary)**  
-  Enforces policy, executes tools (or mediates execution), and emits signed receipts.
-
-- **Tools / Systems (external)**  
-  Git, CI jobs, cloud APIs, ticketing, etc.
-
-- **Receipt Store (optional)**  
-  Append-only store or log sink (filesystem, object storage, SIEM, etc.).
-
-- **Verifier (trusted consumer)**  
-  Validates signatures, schema, policy evidence, chain integrity, and red flags.
+## Components
+- **PolicyGate (enforcement)**  
+  Evaluates a policy pack and returns allow/deny with structured evidence and reason.
+- **Tool mediator / executor**  
+  Executes (or simulates) tool actions through the PolicyGate decision.
+- **Receipt composer + canonicalization**  
+  Builds a receipt and canonicalizes payloads (RFC 8785 / JCS) before hashing/signing.
+- **Signer**  
+  Signs receipts (ed25519 in v0) and writes `integrity.signature`.
+- **Verifier (consumer)**  
+  Validates schema, hashes, signature, optional approvals, and optional chain linkage.
 
 ---
 
 ## Data flow (canonical)
+
 ```mermaid
 flowchart LR
   subgraph AgentHost["Agent Host (untrusted logic)"]
@@ -57,89 +48,64 @@ flowchart LR
 
   subgraph External["External Tools / Systems"]
     T["Tool/API Target"]
-    ST["Receipt Store (optional)"]
+    ST["Receipt Store (dir / jsonl)"]
     V["Verifier (CLI or service)"]
   end
 
-  A -->|"Intent + context"| PG
-  PG -->|"Allow/Deny (with evidence)"| EX
-  EX -->|"Tool call"| T
-  T -->|"Result"| EX
+  A -->|"intent + context"| PG
+  PG -->|"decision + evidence"| EX
+  EX -->|"tool call"| T
+  T -->|"result"| EX
   EX --> RC
   RC --> SG
-  SG -->|"Signed receipt"| ST
+  SG -->|"signed receipt"| ST
   ST --> V
-  V -->|"Verify pass/fail + findings"| A
-Trust boundaries (what must be trusted, what must not)
+
+Trust boundaries
 Trusted boundary (minimum viable TCB)
 
-The following must be small, reviewable, and hardened:
+These pieces must be small, reviewable, and hardened:
 
-Policy decision evaluator (PolicyGate)
+policy decision evaluator (PolicyGate)
 
-Receipt construction + canonicalization (Receipt Composer)
+receipt construction + canonicalization (Receipt Composer)
 
-Signing + key handling (Signer)
+signing + key handling (Signer)
 
-Receipt verification logic (Verifier)
+verification logic (Verifier)
 
 Untrusted / assumed-compromisable
 
-The agent orchestration logic itself
+Assume these can be wrong or compromised:
 
-Prompting / LLM outputs
+agent orchestration logic
 
-Any upstream “planner” code
+prompts / LLM outputs
 
-Any tool response content (must be captured as evidence, not trusted as truth)
+upstream planner code
 
-Principle: assume the agent is fallible or compromised; rely on enforcement + receipts, not “agent honesty.”
+tool response content (capture as evidence; don’t trust as truth)
 
-Receipt chain concept (why this matters)
+Principle: assume the agent is fallible; rely on enforcement + receipts, not “agent honesty.”
 
-Receipts should form a linked chain (like a log with parent pointers):
+Receipt chain concept
 
-Each receipt references:
+Receipts can form a linked chain (like an evidence log):
 
-its parent receipt ID (if any),
+each receipt may reference a parent_receipt_id
 
-a trace ID (shared across a workflow),
+workflows share a trace_id
 
-and hashes of relevant inputs/outputs.
+receipts include hashes of inputs/outputs and policy context
 
-This makes it difficult to “drop” or reorder steps without detection.
+This makes it harder to drop/reorder steps without detection (when chain validation is enabled).
 
-Key management (baseline posture)
+Key posture
 
-Initial builds will support:
+No private keys are shipped in the repo.
 
-Dev keys for local testing (explicitly labeled, not production-safe)
+Local evaluation keys are generated on the evaluator’s machine (scripts/gen_demo_assets.sh).
 
-Pluggable key sources for real deployments later (HSM/KMS integration path)
+Production should use KMS/HSM-backed keys and an explicit trusted public-key allowlist.
 
-Rule: verification must be possible without secret material.
-
-Deployment modes (what enterprises expect)
-
-Local dev: agent + notary runtime + verifier on one machine.
-
-CI/CD gate: notary runtime runs in pipeline; receipts shipped to artifacts / log store.
-
-Control plane: notary runtime as a service that mediates tool calls and emits receipts to SIEM.
-
-What makes this “enterprise-real”
-
-Enforced policy before execution (not after-the-fact logs)
-
-Signed evidence that survives disputes and audits
-
-Verifier that a security team can run independently
-
-Next docs (coming in future commits):
-
-Receipt schema specification
-
-Policy language + examples
-
-Threat model + abuse cases
-
+See docs/KEY_MANAGEMENT.md.
