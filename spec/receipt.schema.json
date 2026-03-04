@@ -88,6 +88,64 @@
         "parameters_hash": { "type": "string", "minLength": 1 }
       }
     },
+
+    "approver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "display": { "type": "string" }
+      }
+    },
+    "approval_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "tool", "operation"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "tool": { "type": "string", "minLength": 1 },
+        "operation": { "type": "string", "minLength": 1 },
+        "resource": { "type": "string", "minLength": 1 }
+      }
+    },
+    "approval_time": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested_at", "decided_at"],
+      "properties": {
+        "requested_at": { "type": "string", "format": "date-time" },
+        "decided_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "approval_signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alg", "key_id", "value"],
+      "properties": {
+        "alg": { "type": "string", "minLength": 1 },
+        "key_id": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approval_id", "type", "status", "approver", "scope", "time"],
+      "properties": {
+        "approval_id": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "enum": ["human", "ticket", "breakglass"] },
+        "status": { "type": "string", "enum": ["requested", "approved", "denied", "expired", "revoked"] },
+        "approver": { "$ref": "#/$defs/approver" },
+        "scope": { "$ref": "#/$defs/approval_scope" },
+        "time": { "$ref": "#/$defs/approval_time" },
+        "notes": { "type": "string" },
+        "signature": { "$ref": "#/$defs/approval_signature" }
+      }
+    },
+
     "policy": {
       "type": "object",
       "additionalProperties": false,
@@ -111,7 +169,7 @@
         },
         "approvals": {
           "type": "array",
-          "items": {}
+          "items": { "$ref": "#/$defs/approval" }
         },
         "context_hashes": {
           "type": "object",
@@ -122,6 +180,7 @@
         "policy_source": { "type": "string", "minLength": 1 }
       }
     },
+
     "result": {
       "type": "object",
       "additionalProperties": false,
