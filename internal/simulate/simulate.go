@@ -138,6 +138,26 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 		})
 	}
 
+	policyObj := map[string]any{
+		"policy_id": dec.PolicyID,
+		"decision":  dec.Decision,
+		"reason":    dec.Reason,
+		"rules":     rules,
+		"approvals": []any{},
+		"context_hashes": map[string]any{
+			"requested_path": reqPathHash,
+		},
+	}
+
+	// Policy pack integrity (optional but recommended):
+	// proves which exact policy pack produced the decision.
+	if dec.PolicyHash != "" {
+		policyObj["policy_hash"] = dec.PolicyHash
+	}
+	if dec.PolicySource != "" {
+		policyObj["policy_source"] = dec.PolicySource
+	}
+
 	r := receipt.Receipt{
 		"receipt_version": "0.1.0",
 		"receipt_id":      receiptID,
@@ -175,16 +195,7 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 			"parameters_hash": "sha256:PLACEHOLDER_PARAMETERS_HASH",
 		},
 
-		"policy": map[string]any{
-			"policy_id": dec.PolicyID,
-			"decision":  dec.Decision,
-			"reason":    dec.Reason,
-			"rules":     rules,
-			"approvals": []any{},
-			"context_hashes": map[string]any{
-				"requested_path": reqPathHash,
-			},
-		},
+		"policy": policyObj,
 
 		"result": map[string]any{
 			"status":      status,
