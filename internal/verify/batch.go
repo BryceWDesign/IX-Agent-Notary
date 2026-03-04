@@ -11,20 +11,20 @@ import (
 )
 
 type DirOptions struct {
-	Dir            string
-	SchemaPath     string
-	PublicKeyPath  string
-	StrictHashes   bool
-	StrictSignature bool
-	StrictChain    bool
+	Dir              string
+	SchemaPath       string
+	PublicKeyPath    string
+	StrictHashes     bool
+	StrictSignature  bool
+	StrictApprovals  bool
+	StrictChain      bool
 }
 
 type DirResult struct {
-	Dir   string
-	Total int
-	OK    int
-	Fail  int
-	// First N failures (for readable CLI output).
+	Dir      string
+	Total    int
+	OK       int
+	Fail     int
 	Failures []string
 }
 
@@ -76,22 +76,21 @@ func VerifyDir(opts DirOptions) (*DirResult, error) {
 	res := &DirResult{Dir: dir, Total: len(files)}
 
 	validateStrict := func(r receipt.Receipt) error {
-		_, _, err := func() (any, any, error) {
-			_, _, verr := ValidateReceiptObject(r, schema, ReceiptValidationOptions{
-				StrictHashes:    opts.StrictHashes,
-				StrictSignature: opts.StrictSignature,
-				PublicKeyPath:   opts.PublicKeyPath,
-			})
-			return nil, nil, verr
-		}()
+		_, _, _, err := ValidateReceiptObject(r, schema, ReceiptValidationOptions{
+			StrictHashes:    opts.StrictHashes,
+			StrictSignature: opts.StrictSignature,
+			StrictApprovals: opts.StrictApprovals,
+			PublicKeyPath:   opts.PublicKeyPath,
+		})
 		return err
 	}
 
-	// Parent validator is always strict when StrictChain is on.
+	// Parent validator is always strict when StrictChain is on (and includes approvals if requested).
 	validateParentStrict := func(r receipt.Receipt) error {
-		_, _, err := ValidateReceiptObject(r, schema, ReceiptValidationOptions{
+		_, _, _, err := ValidateReceiptObject(r, schema, ReceiptValidationOptions{
 			StrictHashes:    true,
 			StrictSignature: true,
+			StrictApprovals: opts.StrictApprovals,
 			PublicKeyPath:   opts.PublicKeyPath,
 		})
 		return err
