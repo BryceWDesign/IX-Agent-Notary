@@ -15,6 +15,7 @@ func TestVerifyDir_Examples_StrictChain(t *testing.T) {
 		SchemaPath:      filepath.Join(root, "spec", "receipt.schema.json"),
 		StrictHashes:    true,
 		StrictSignature: true,
+		StrictApprovals: false,
 		StrictChain:     true,
 	})
 	if err != nil {
