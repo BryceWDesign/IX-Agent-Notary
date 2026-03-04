@@ -1,32 +1,27 @@
 {
   "receipt_version": "0.1.0",
   "receipt_id": "b8b1c7a8-6d91-4b35-8b2f-4a4b4a7a0001",
-
   "time": {
     "requested_at": "2026-03-02T00:00:00Z",
     "decided_at": "2026-03-02T00:00:01Z",
     "completed_at": "2026-03-02T00:00:02Z"
   },
-
   "trace": {
     "trace_id": "a55d9f3a-7b59-4c7b-8c8c-0f9a00000001",
     "step": 1
   },
-
   "actor": {
     "type": "agent",
     "id": "agent:demo",
     "display": "Demo Agent",
     "session_id": "sess-demo-001"
   },
-
   "notary": {
     "runtime": "IX-Agent-Notary",
     "version": "0.1.0-dev",
     "instance_id": "notary-local-001",
     "environment": "local"
   },
-
   "action": {
     "kind": "tool.invoke",
     "tool": "filesystem",
@@ -36,9 +31,8 @@
       "bytes": 27,
       "content_redacted": true
     },
-    "parameters_hash": "sha256:PLACEHOLDER_PARAMETERS_HASH"
+    "parameters_hash": "sha256:vHxsBrG-E96itQMiOPvPNsNslAZpZO6N-xibOuhA8Oo"
   },
-
   "policy": {
     "policy_id": "policy:default-allowlist",
     "decision": "allow",
@@ -52,7 +46,6 @@
     ],
     "approvals": []
   },
-
   "result": {
     "status": "success",
     "summary": "Wrote docs/demo.txt (content redacted).",
@@ -61,24 +54,18 @@
       "written": true,
       "content_redacted": true
     },
-    "output_hash": "sha256:PLACEHOLDER_OUTPUT_HASH",
-    "artifacts": [
-      {
-        "type": "file",
-        "uri": "file://docs/demo.txt",
-        "hash": "sha256:PLACEHOLDER_FILE_HASH",
-        "hash_alg": "sha-256"
-      }
-    ]
+    "output_hash": "sha256:fyXuIcFSLV7dOIocg8yHPa1UF7CeEseGpC-psAvIHM0"
   },
-
   "integrity": {
     "canonicalization": "RFC8785-JCS",
-    "hash": { "alg": "sha-256", "encoding": "base64url" },
+    "hash": {
+      "alg": "sha-256",
+      "encoding": "base64url"
+    },
     "signature": {
       "alg": "ed25519",
       "key_id": "dev-key-001",
-      "value": "BASE64URL_SIGNATURE_PLACEHOLDER"
+      "value": "rbILdHHGofSMhvPP5Hhriqc-TPyZ7YYLST7J2pJkJ9iKD_hCxzeYpu8cYf3q9xZ7O-9YxEtNQXdj7xL6y9IYBA"
     }
   }
 }
