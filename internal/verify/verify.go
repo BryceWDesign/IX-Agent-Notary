@@ -16,6 +16,7 @@ type Options struct {
 	SchemaPath       string
 	StrictHashes     bool
 	StrictSignature  bool
+	StrictApprovals  bool
 	PublicKeyPathOpt string
 
 	StrictChain bool
@@ -27,6 +28,7 @@ type Result struct {
 	SchemaPath  string
 	Hashes      receipt.HashCheck
 	Signature   receipt.SignatureCheck
+	Approvals   receipt.ApprovalSigCheck
 	Chain       receipt.ChainCheck
 }
 
@@ -54,18 +56,11 @@ func Run(opts Options) (*Result, error) {
 		return nil, err
 	}
 
-	if err := schema.Validate(any(r)); err != nil {
-		return nil, fmt.Errorf("schema validation failed: %w", err)
-	}
-
-	hc, err := receipt.ValidateCoreHashes(r, receipt.HashValidationOptions{Strict: opts.StrictHashes})
-	if err != nil {
-		return nil, err
-	}
-
-	sc, err := receipt.ValidateSignature(r, receipt.SignatureValidationOptions{
-		Strict:        opts.StrictSignature,
-		PublicKeyPath: opts.PublicKeyPathOpt,
+	hc, sc, ac, err := ValidateReceiptObject(r, schema, ReceiptValidationOptions{
+		StrictHashes:    opts.StrictHashes,
+		StrictSignature: opts.StrictSignature,
+		StrictApprovals: opts.StrictApprovals,
+		PublicKeyPath:   opts.PublicKeyPathOpt,
 	})
 	if err != nil {
 		return nil, err
@@ -83,18 +78,15 @@ func Run(opts Options) (*Result, error) {
 			return nil, err
 		}
 
-		// Validate each parent strictly: schema + hashes + signature.
+		// Validate each parent strictly: schema + hashes + signature (+ approvals if requested).
 		validateParent := func(pr receipt.Receipt) error {
-			if err := schema.Validate(any(pr)); err != nil {
-				return fmt.Errorf("schema validation failed: %w", err)
-			}
-			if _, err := receipt.ValidateCoreHashes(pr, receipt.HashValidationOptions{Strict: true}); err != nil {
-				return err
-			}
-			if _, err := receipt.ValidateSignature(pr, receipt.SignatureValidationOptions{Strict: true, PublicKeyPath: opts.PublicKeyPathOpt}); err != nil {
-				return err
-			}
-			return nil
+			_, _, _, err := ValidateReceiptObject(pr, schema, ReceiptValidationOptions{
+				StrictHashes:    true,
+				StrictSignature: true,
+				StrictApprovals: opts.StrictApprovals,
+				PublicKeyPath:   opts.PublicKeyPathOpt,
+			})
+			return err
 		}
 
 		c, err := receipt.ValidateChain(r, resolver, validateParent, receipt.ChainValidationOptions{Strict: true})
@@ -107,8 +99,9 @@ func Run(opts Options) (*Result, error) {
 	return &Result{
 		ReceiptPath: opts.ReceiptPath,
 		SchemaPath:  opts.SchemaPath,
-		Hashes:      *hc,
-		Signature:   *sc,
+		Hashes:      hc,
+		Signature:   sc,
+		Approvals:   ac,
 		Chain:       cc,
 	}, nil
 }
