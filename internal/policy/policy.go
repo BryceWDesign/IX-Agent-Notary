@@ -11,6 +11,10 @@ type Policy struct {
 	PolicyID      string `json:"policy_id"`
 	DefaultEffect string `json:"default_effect"` // "allow" or "deny"
 	Rules         []Rule `json:"rules"`
+
+	// Not serialized; filled by Load().
+	PolicyHash string `json:"-"`
+	SourcePath string `json:"-"`
 }
 
 type Rule struct {
@@ -29,25 +33,37 @@ func Load(path string) (*Policy, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read policy: %w", err)
 	}
+
 	var p Policy
 	if err := json.Unmarshal(b, &p); err != nil {
 		return nil, fmt.Errorf("parse policy json: %w", err)
 	}
+
 	if strings.TrimSpace(p.PolicyID) == "" {
 		return nil, fmt.Errorf("policy_id is required")
 	}
 	if p.DefaultEffect == "" {
 		p.DefaultEffect = "deny"
 	}
+
 	p.DefaultEffect = strings.ToLower(strings.TrimSpace(p.DefaultEffect))
 	if p.DefaultEffect != "allow" && p.DefaultEffect != "deny" {
 		return nil, fmt.Errorf("default_effect must be allow|deny (got %q)", p.DefaultEffect)
 	}
+
 	for i := range p.Rules {
 		p.Rules[i].Effect = strings.ToLower(strings.TrimSpace(p.Rules[i].Effect))
 		if p.Rules[i].Effect != "allow" && p.Rules[i].Effect != "deny" {
 			return nil, fmt.Errorf("rule %d effect must be allow|deny (got %q)", i, p.Rules[i].Effect)
 		}
 	}
+
+	ph, err := ComputePolicyHashJSON(b)
+	if err != nil {
+		return nil, err
+	}
+	p.PolicyHash = ph
+	p.SourcePath = path
+
 	return &p, nil
 }
