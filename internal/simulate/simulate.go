@@ -79,13 +79,7 @@ func Run(opts Options) error {
 		return err
 	}
 
-	// Reuse sign package writer for consistent JSON formatting.
-	return sign.Run(sign.Options{
-		InPath:  "", // unused
-		OutPath: opts.OutPath,
-		KeyPath: opts.SignKeyPath,
-		KeyID:   opts.SignKeyID,
-	})
+	return receipt.Write(opts.OutPath, r)
 }
 
 // buildReceipt constructs a receipt with policy decision + simulated result.
@@ -105,8 +99,8 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 
 	// Action parameters (simulated)
 	params := map[string]any{
-		"path":            opts.Path,
-		"bytes":           opts.Bytes,
+		"path":             opts.Path,
+		"bytes":            opts.Bytes,
 		"content_redacted": true,
 	}
 
@@ -138,9 +132,9 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 	rules := []map[string]any{}
 	for _, mr := range dec.Matched {
 		rules = append(rules, map[string]any{
-			"rule_id":      mr.RuleID,
-			"effect":       mr.Effect,
-			"explanation":  mr.Explanation,
+			"rule_id":     mr.RuleID,
+			"effect":      mr.Effect,
+			"explanation": mr.Explanation,
 		})
 	}
 
@@ -167,10 +161,10 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 		},
 
 		"notary": map[string]any{
-			"runtime":      "IX-Agent-Notary",
-			"version":      "0.1.0-dev",
-			"instance_id":  opts.NotaryInst,
-			"environment":  "local",
+			"runtime":     "IX-Agent-Notary",
+			"version":     "0.1.0-dev",
+			"instance_id": opts.NotaryInst,
+			"environment": "local",
 		},
 
 		"action": map[string]any{
