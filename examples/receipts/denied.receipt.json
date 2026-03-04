@@ -1,15 +1,15 @@
 {
   "receipt_version": "0.1.0",
-  "receipt_id": "b8b1c7a8-6d91-4b35-8b2f-4a4b4a7a0002",
+  "receipt_id": "4a48f6a5-ea9c-4f52-b4c9-8b0a2f0c621f",
   "time": {
-    "requested_at": "2026-03-02T00:10:00Z",
-    "decided_at": "2026-03-02T00:10:00Z",
-    "completed_at": "2026-03-02T00:10:00Z"
+    "requested_at": "2026-03-02T00:00:00Z",
+    "decided_at": "2026-03-02T00:00:00Z",
+    "completed_at": "2026-03-02T00:00:00Z"
   },
   "trace": {
-    "trace_id": "a55d9f3a-7b59-4c7b-8c8c-0f9a00000001",
+    "trace_id": "5591c3dc-45c7-44ae-bcc5-08196421fb1a",
     "step": 2,
-    "parent_receipt_id": "b8b1c7a8-6d91-4b35-8b2f-4a4b4a7a0001"
+    "parent_receipt_id": "ba49f6a5-bed6-4d8e-887b-d49f52d415df"
   },
   "actor": {
     "type": "agent",
@@ -29,35 +29,37 @@
     "operation": "file.write",
     "parameters": {
       "path": ".env",
-      "bytes": 12,
+      "bytes": 0,
       "content_redacted": true
     },
-    "parameters_hash": "sha256:zPTgGS1H8jOCwjCnnsE1agk6tl3J5m-Ou2zUfM8IVNo"
+    "parameters_hash": "sha256:48t8oxA9oN7Vrc-6P8sJ0ETdZSGfD1d5lrby0qN0eN0"
   },
   "policy": {
-    "policy_id": "policy:default-allowlist",
+    "policy_id": "demo-policy-001",
     "decision": "deny",
-    "reason": "Write denied: path is outside allowlist.",
+    "reason": "explicit deny for .env",
     "rules": [
       {
-        "rule_id": "fs-write-docs-only",
+        "rule_id": "deny-env",
         "effect": "deny",
-        "explanation": "Only docs/* writes are allowed in demo policy."
+        "explanation": "deny .env writes"
       }
     ],
     "approvals": [],
     "context_hashes": {
-      "requested_path": "sha256:I5p7QH-SE0rOBGKBWErQQwbF1MgdZC6QIST43NGm5oA"
-    }
+      "requested_path": "sha256:Yo3CcrMl8Tx4FY27SFRT4abYk0z9B1dMli7sOfLE1nY"
+    },
+    "policy_hash": "sha256:i7EP3ZB8oVqP2XUXS7P_ywlTpvKzvO1EXkQk2N4C2EE",
+    "policy_source": "policy/demo.policy.json"
   },
   "result": {
     "status": "denied",
-    "summary": "Denied write to .env by policy.",
+    "summary": "Denied filesystem file.write (simulated).",
     "output": {
       "written": false,
       "denied": true
     },
-    "output_hash": "sha256:92hGqoj7Z3k3l3qNZ6NGGTw2hsL6e6nTUYaHo5vROhM"
+    "output_hash": "sha256:bGdOXgbkZVwGEMnKX6M7Yk64sK9bG9kq7nmg6vHcGkQ"
   },
   "integrity": {
     "canonicalization": "RFC8785-JCS",
@@ -68,7 +70,7 @@
     "signature": {
       "alg": "ed25519",
       "key_id": "dev-key-001",
-      "value": "5wz_toqRyu4tKoxeruLr8cotS8eFhB1gl0ZNsJ6NEol95giljlP9XRAwjQC9OdpmWRKTdRN7KaRbOvQqwjtnDA"
+      "value": "lCBnh7oJv-7rZsVv7pYl2RVvI9QXx5BSqvV79VQ0J-np_u8Qsv7IFw4V3LPBW6cYd_bJ3zF0pT2QqzYq7dF0DA"
     }
   }
 }
