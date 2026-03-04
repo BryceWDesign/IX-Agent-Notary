@@ -36,7 +36,7 @@ Optional fields:
 - `signature` (object)
   - `alg` (string) — `ed25519`
   - `key_id` (string)
-  - `value` (string) — signature over canonical approval payload (RFC8785), excluding `signature.value`
+  - `value` (string) — signature over canonical approval payload (RFC8785), **including** `signature.alg` and `signature.key_id`, but **excluding** `signature.value`
 
 ---
 
@@ -44,16 +44,15 @@ Optional fields:
 
 ### Simulator emits signed approvals
 When you run:
-
+```bash
 ix-an simulate ... --approve
+
 …the simulator signs each approval object (demo uses the same key as receipt signing).
 
 Verifier can enforce signed approvals
 
 Use:
-
 ix-an verify <receipt.json> --strict-approvals
-
 Strict approvals means:
 
 if approvals exist, each approval must include a signature
