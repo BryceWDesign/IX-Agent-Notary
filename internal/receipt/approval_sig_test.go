@@ -3,7 +3,9 @@ package receipt
 import (
 	"crypto/ed25519"
 	"encoding/base64"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"ix-agent-notary/internal/sign"
@@ -41,18 +43,17 @@ func TestApprovalSignature_RoundTrip_SignAndVerify(t *testing.T) {
 	}
 
 	// Derive public key directly from the seed (test does not depend on .pub file).
-	seedB64, err := osReadText(seedPath)
+	seedB, err := os.ReadFile(seedPath)
 	if err != nil {
 		t.Fatalf("read seed: %v", err)
 	}
-	seed, err := base64.RawURLEncoding.DecodeString(seedB64)
+	seed, err := base64.RawURLEncoding.DecodeString(strings.TrimSpace(string(seedB)))
 	if err != nil {
 		t.Fatalf("decode seed: %v", err)
 	}
 	priv := ed25519.NewKeyFromSeed(seed)
 	pub := priv.Public().(ed25519.PublicKey)
 
-	// Verify using the same canonicalization logic the repo uses for approvals.
 	payload, err := CanonicalizeApprovalForSigning(approval)
 	if err != nil {
 		t.Fatalf("CanonicalizeApprovalForSigning: %v", err)
@@ -68,12 +69,4 @@ func TestApprovalSignature_RoundTrip_SignAndVerify(t *testing.T) {
 	if !ed25519.Verify(pub, payload, sig) {
 		t.Fatalf("expected signature to verify")
 	}
-}
-
-func osReadText(path string) (string, error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(string(b)), nil
 }
