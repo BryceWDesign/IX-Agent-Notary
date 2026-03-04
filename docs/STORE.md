@@ -1,11 +1,11 @@
 # Receipt Store (v0)
 
-This repo supports a minimal “receipt store” pattern:
+This repo supports a minimal “receipt store” pattern.
 
 ## 1) Directory store
-Receipts can be stored as individual JSON files in a directory.  
-Use:
+Receipts can be stored as individual JSON files in a directory.
 
+Run:
 ```bash
 ix-an verify-dir <dir>
 
@@ -33,4 +33,4 @@ Notes:
 
 The log is “append-only” by convention; IX-Agent-Notary verifies tamper evidence via signatures.
 
-A real deployment would put the log behind immutability controls (WORM/S3 Object Lock, append-only DB, etc.).
+A real deployment should put the log behind immutability controls (WORM / S3 Object Lock / append-only DB).
