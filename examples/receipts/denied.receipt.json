@@ -1,33 +1,28 @@
 {
   "receipt_version": "0.1.0",
   "receipt_id": "b8b1c7a8-6d91-4b35-8b2f-4a4b4a7a0002",
-
   "time": {
     "requested_at": "2026-03-02T00:10:00Z",
     "decided_at": "2026-03-02T00:10:00Z",
     "completed_at": "2026-03-02T00:10:00Z"
   },
-
   "trace": {
     "trace_id": "a55d9f3a-7b59-4c7b-8c8c-0f9a00000001",
     "step": 2,
     "parent_receipt_id": "b8b1c7a8-6d91-4b35-8b2f-4a4b4a7a0001"
   },
-
   "actor": {
     "type": "agent",
     "id": "agent:demo",
     "display": "Demo Agent",
     "session_id": "sess-demo-001"
   },
-
   "notary": {
     "runtime": "IX-Agent-Notary",
     "version": "0.1.0-dev",
     "instance_id": "notary-local-001",
     "environment": "local"
   },
-
   "action": {
     "kind": "tool.invoke",
     "tool": "filesystem",
@@ -37,9 +32,8 @@
       "bytes": 12,
       "content_redacted": true
     },
-    "parameters_hash": "sha256:PLACEHOLDER_PARAMETERS_HASH"
+    "parameters_hash": "sha256:zPTgGS1H8jOCwjCnnsE1agk6tl3J5m-Ou2zUfM8IVNo"
   },
-
   "policy": {
     "policy_id": "policy:default-allowlist",
     "decision": "deny",
@@ -53,10 +47,9 @@
     ],
     "approvals": [],
     "context_hashes": {
-      "requested_path": "sha256:PLACEHOLDER_REQUESTED_PATH_HASH"
+      "requested_path": "sha256:I5p7QH-SE0rOBGKBWErQQwbF1MgdZC6QIST43NGm5oA"
     }
   },
-
   "result": {
     "status": "denied",
     "summary": "Denied write to .env by policy.",
@@ -64,16 +57,18 @@
       "written": false,
       "denied": true
     },
-    "output_hash": "sha256:PLACEHOLDER_OUTPUT_HASH"
+    "output_hash": "sha256:92hGqoj7Z3k3l3qNZ6NGGTw2hsL6e6nTUYaHo5vROhM"
   },
-
   "integrity": {
     "canonicalization": "RFC8785-JCS",
-    "hash": { "alg": "sha-256", "encoding": "base64url" },
+    "hash": {
+      "alg": "sha-256",
+      "encoding": "base64url"
+    },
     "signature": {
       "alg": "ed25519",
       "key_id": "dev-key-001",
-      "value": "BASE64URL_SIGNATURE_PLACEHOLDER"
+      "value": "5wz_toqRyu4tKoxeruLr7xWpb4zD8nM8QpgTqQa8F52q1vYtHn9lM15oYVQ9Y5w3eYcKN8pW6jBvV1Gv7aT8Bw"
     }
   }
 }
