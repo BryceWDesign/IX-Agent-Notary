@@ -1,6 +1,6 @@
 # Approvals (v0)
 
-Enterprises don’t just want “policy allowed it.” They want **governance evidence**:
+Enterprises don’t just want “policy allowed it.” They want governance evidence:
 - who approved,
 - what exactly was approved,
 - when it was approved,
@@ -36,22 +36,22 @@ Optional fields:
 - `signature` (object)
   - `alg` (string) — `ed25519`
   - `key_id` (string)
-  - `value` (string) — signature over canonical approval payload (RFC8785), **including** `signature.alg` and `signature.key_id`, but **excluding** `signature.value`
+  - `value` (string) — signature over canonical approval payload (RFC8785), including `signature.alg` and `signature.key_id`, but excluding `signature.value`
 
 ---
 
 ## Approval signatures (implemented)
 
 ### Simulator emits signed approvals
-When you run:
+Run:
 ```bash
 ix-an simulate ... --approve
 
-…the simulator signs each approval object (demo uses the same key as receipt signing).
+…and the simulator signs each approval object (demo uses the same key as receipt signing).
 
 Verifier can enforce signed approvals
 
-Use:
+Run:
 ix-an verify <receipt.json> --strict-approvals
 Strict approvals means:
 
@@ -70,13 +70,3 @@ Change-management linkage (ticket approvals)
 Break-glass logging (incident time access)
 
 Least-privilege + “two person rule” patterns (future extension)
-
-Future extensions (not required for v0)
-
-distinct approver keys (separate trust domain from notary signing)
-
-quorum / multi-party approvals
-
-linking approvals to external systems (Jira/ServiceNow/GitHub PR)
-
-transparency logging of approvals
