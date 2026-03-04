@@ -1,0 +1,79 @@
+{
+  "receipt_version": "0.1.0",
+  "receipt_id": "b8b1c7a8-6d91-4b35-8b2f-4a4b4a7a0002",
+
+  "time": {
+    "requested_at": "2026-03-02T00:10:00Z",
+    "decided_at": "2026-03-02T00:10:00Z",
+    "completed_at": "2026-03-02T00:10:00Z"
+  },
+
+  "trace": {
+    "trace_id": "a55d9f3a-7b59-4c7b-8c8c-0f9a00000001",
+    "step": 2,
+    "parent_receipt_id": "b8b1c7a8-6d91-4b35-8b2f-4a4b4a7a0001"
+  },
+
+  "actor": {
+    "type": "agent",
+    "id": "agent:demo",
+    "display": "Demo Agent",
+    "session_id": "sess-demo-001"
+  },
+
+  "notary": {
+    "runtime": "IX-Agent-Notary",
+    "version": "0.1.0-dev",
+    "instance_id": "notary-local-001",
+    "environment": "local"
+  },
+
+  "action": {
+    "kind": "tool.invoke",
+    "tool": "filesystem",
+    "operation": "file.write",
+    "parameters": {
+      "path": ".env",
+      "bytes": 12,
+      "content_redacted": true
+    },
+    "parameters_hash": "sha256:PLACEHOLDER_PARAMETERS_HASH"
+  },
+
+  "policy": {
+    "policy_id": "policy:default-allowlist",
+    "decision": "deny",
+    "reason": "Write denied: path is outside allowlist.",
+    "rules": [
+      {
+        "rule_id": "fs-write-docs-only",
+        "effect": "deny",
+        "explanation": "Only docs/* writes are allowed in demo policy."
+      }
+    ],
+    "approvals": [],
+    "context_hashes": {
+      "requested_path": "sha256:PLACEHOLDER_REQUESTED_PATH_HASH"
+    }
+  },
+
+  "result": {
+    "status": "denied",
+    "summary": "Denied write to .env by policy.",
+    "output": {
+      "written": false,
+      "denied": true
+    },
+    "output_hash": "sha256:PLACEHOLDER_OUTPUT_HASH"
+  },
+
+  "integrity": {
+    "canonicalization": "RFC8785-JCS",
+    "hash": { "alg": "sha-256", "encoding": "base64url" },
+    "signature": {
+      "alg": "ed25519",
+      "key_id": "dev-key-001",
+      "value": "BASE64URL_SIGNATURE_PLACEHOLDER"
+    }
+  }
+}
