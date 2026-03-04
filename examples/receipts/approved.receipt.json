@@ -1,0 +1,103 @@
+{
+  "receipt_version": "0.1.0",
+  "receipt_id": "ed8e9bfe-3bf4-4e6d-93e2-2d3b1e8a6cbb",
+  "time": {
+    "requested_at": "2026-03-02T00:00:00Z",
+    "decided_at": "2026-03-02T00:00:00Z",
+    "completed_at": "2026-03-02T00:00:00Z"
+  },
+  "trace": {
+    "trace_id": "2b2f7f78-e0b0-4ce9-8c5a-4b9a4a4f7d2d",
+    "step": 1
+  },
+  "actor": {
+    "type": "agent",
+    "id": "agent:demo",
+    "display": "Demo Agent",
+    "session_id": "sess-demo-001"
+  },
+  "notary": {
+    "runtime": "IX-Agent-Notary",
+    "version": "0.1.0-dev",
+    "instance_id": "notary-local-001",
+    "environment": "local"
+  },
+  "action": {
+    "kind": "tool.invoke",
+    "tool": "filesystem",
+    "operation": "file.write",
+    "parameters": {
+      "path": "docs/approved.txt",
+      "bytes": 7,
+      "content_redacted": true
+    },
+    "parameters_hash": "sha256:5y1_2-5v_0b4bA2GfQx3yqv6Qh1C2qgB9f3G7tq6uF0"
+  },
+  "policy": {
+    "policy_id": "demo-policy-001",
+    "decision": "allow",
+    "reason": "allowed with approval evidence",
+    "rules": [
+      {
+        "rule_id": "allow-docs",
+        "effect": "allow",
+        "explanation": "allow docs/* writes"
+      }
+    ],
+    "approvals": [
+      {
+        "approval_id": "e2b8d0e3-f4d3-4b57-9b55-31c8f8e9d1f0",
+        "type": "ticket",
+        "status": "approved",
+        "approver": {
+          "type": "user",
+          "id": "you@example.com",
+          "display": "You"
+        },
+        "scope": {
+          "kind": "tool.invoke",
+          "tool": "filesystem",
+          "operation": "file.write",
+          "resource": "docs/approved.txt"
+        },
+        "time": {
+          "requested_at": "2026-03-02T00:00:00Z",
+          "decided_at": "2026-03-02T00:00:00Z"
+        },
+        "notes": "Demo ticket approval.",
+        "signature": {
+          "alg": "ed25519",
+          "key_id": "dev-key-001",
+          "value": "DSOaQBCjLKRgV6C2v4gGq4oF5UeNQhU4GqYbQ7yqFh4n7Xv7Pq0a5m2o9zR4dF0kqZt8vEwD7aTt5p0cYy8yBQ"
+        }
+      }
+    ],
+    "context_hashes": {
+      "requested_path": "sha256:xQ2B5H1k1qYq3q2xR2s7xk8QvJb9v2n3lVQy8mVd0iA"
+    },
+    "policy_hash": "sha256:i7EP3ZB8oVqP2XUXS7P_ywlTpvKzvO1EXkQk2N4C2EE",
+    "policy_source": "policy/demo.policy.json"
+  },
+  "result": {
+    "status": "success",
+    "summary": "Allowed filesystem file.write (simulated).",
+    "output": {
+      "path": "docs/approved.txt",
+      "written": true,
+      "content_redacted": true
+    },
+    "output_hash": "sha256:Yx7aQf4m9g2b0c2Zf3l1n6t8p0q1r2s3t4u5v6w7x8Y"
+  },
+  "integrity": {
+    "canonicalization": "RFC8785-JCS",
+    "hash": {
+      "alg": "sha-256",
+      "encoding": "base64url"
+    },
+    "signature": {
+      "alg": "ed25519",
+      "key_id": "dev-key-001",
+      "value": "KQm7r6tJ2q7p7b8h3b8x2s2H6q5w1Yx0yZ3v7q4b6p8u9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j8k9lA"
+    }
+  }
+}
