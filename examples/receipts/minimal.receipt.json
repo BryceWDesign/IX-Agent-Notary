@@ -1,13 +1,13 @@
 {
   "receipt_version": "0.1.0",
-  "receipt_id": "ba49f6a5-bed6-4d8e-887b-d49f52d415df",
+  "receipt_id": "b3bdcd8c-5b81-479b-83a1-42225f7682d2",
   "time": {
     "requested_at": "2026-03-02T00:00:00Z",
     "decided_at": "2026-03-02T00:00:00Z",
     "completed_at": "2026-03-02T00:00:00Z"
   },
   "trace": {
-    "trace_id": "5591c3dc-45c7-44ae-bcc5-08196421fb1a",
+    "trace_id": "ca240231-f8b7-4b57-a272-0e1da4a87786",
     "step": 1
   },
   "actor": {
@@ -31,7 +31,7 @@
       "bytes": 10,
       "content_redacted": true
     },
-    "parameters_hash": "sha256:nzBG_2AYdPA-B9OAnOnol_ZeApZW_E1SV5IS0R01c00"
+    "parameters_hash": "sha256:HYthq7weCadmlK6OoW2Oe32VxLT6b7I8p0vUo3XRa8k"
   },
   "policy": {
     "policy_id": "demo-policy-001",
@@ -46,10 +46,8 @@
     ],
     "approvals": [],
     "context_hashes": {
-      "requested_path": "sha256:zYspRruU8A5aZvUZyO9jfJgIDgPpAI6mSu0xJtQM-Zc"
-    },
-    "policy_hash": "sha256:i7EP3ZB8oVqP2XUXS7P_ywlTpvKzvO1EXkQk2N4C2EE",
-    "policy_source": "policy/demo.policy.json"
+      "requested_path": "sha256:frzhpSwKNG4kKjNH5JX_yLJt5mYZoJKUt0MZqJ2yLTQ"
+    }
   },
   "result": {
     "status": "success",
@@ -59,7 +57,7 @@
       "written": true,
       "content_redacted": true
     },
-    "output_hash": "sha256:LWqXYheR0f8y7lE4A4qT11yuhC7iT0Dda2WB-4O7rYo"
+    "output_hash": "sha256:OrhWojHzXx3bjWL4KzM-bjG2cXGxI3OTQ8w5U5w5GL4"
   },
   "integrity": {
     "canonicalization": "RFC8785-JCS",
@@ -70,7 +68,7 @@
     "signature": {
       "alg": "ed25519",
       "key_id": "dev-key-001",
-      "value": "uzSJ5PdyY1J-OT4gaxV7w3bdffkzLQm6f0bnu-_4-N_KhVaeQpZ2HxlxwWkPDlKZ7WXL3m90LZ1NvNaN-C0oDw"
+      "value": "mhy7NDWZd40wjRwwU5vp87uMZiUL9btVl_1VHEmHYkaakK4esxfQxrbYk81hrmQiJXLzsaApqKEGOimjoQxQAQ"
     }
   }
 }
