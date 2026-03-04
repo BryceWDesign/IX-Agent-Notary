@@ -9,9 +9,10 @@ import (
 )
 
 type ReceiptValidationOptions struct {
-	StrictHashes    bool
-	StrictSignature bool
-	PublicKeyPath   string
+	StrictHashes     bool
+	StrictSignature  bool
+	StrictApprovals  bool
+	PublicKeyPath    string
 }
 
 // CompileSchema compiles the receipt JSON Schema once for reuse.
@@ -19,19 +20,24 @@ func CompileSchema(schemaPath string) (*jsonschema.Schema, error) {
 	return compileSchema(schemaPath)
 }
 
-// ValidateReceiptObject validates a loaded receipt object (schema + optional strict hashes + optional strict signature).
-func ValidateReceiptObject(r receipt.Receipt, schema *jsonschema.Schema, opts ReceiptValidationOptions) (receipt.HashCheck, receipt.SignatureCheck, error) {
+// ValidateReceiptObject validates a loaded receipt object.
+// It always validates schema; then (optionally strict) hashes/signature/approvals.
+func ValidateReceiptObject(
+	r receipt.Receipt,
+	schema *jsonschema.Schema,
+	opts ReceiptValidationOptions,
+) (receipt.HashCheck, receipt.SignatureCheck, receipt.ApprovalSigCheck, error) {
 	if schema == nil {
-		return receipt.HashCheck{}, receipt.SignatureCheck{}, fmt.Errorf("schema is nil")
+		return receipt.HashCheck{}, receipt.SignatureCheck{}, receipt.ApprovalSigCheck{}, fmt.Errorf("schema is nil")
 	}
 
 	if err := schema.Validate(any(r)); err != nil {
-		return receipt.HashCheck{}, receipt.SignatureCheck{}, fmt.Errorf("schema validation failed: %w", err)
+		return receipt.HashCheck{}, receipt.SignatureCheck{}, receipt.ApprovalSigCheck{}, fmt.Errorf("schema validation failed: %w", err)
 	}
 
 	hc, err := receipt.ValidateCoreHashes(r, receipt.HashValidationOptions{Strict: opts.StrictHashes})
 	if err != nil {
-		return receipt.HashCheck{}, receipt.SignatureCheck{}, err
+		return receipt.HashCheck{}, receipt.SignatureCheck{}, receipt.ApprovalSigCheck{}, err
 	}
 
 	sc, err := receipt.ValidateSignature(r, receipt.SignatureValidationOptions{
@@ -39,8 +45,16 @@ func ValidateReceiptObject(r receipt.Receipt, schema *jsonschema.Schema, opts Re
 		PublicKeyPath: opts.PublicKeyPath,
 	})
 	if err != nil {
-		return receipt.HashCheck{}, receipt.SignatureCheck{}, err
+		return receipt.HashCheck{}, receipt.SignatureCheck{}, receipt.ApprovalSigCheck{}, err
 	}
 
-	return *hc, *sc, nil
+	ac, err := receipt.ValidateApprovalSignatures(r, receipt.ApprovalSigValidationOptions{
+		Strict:       opts.StrictApprovals,
+		PublicKeyPath: opts.PublicKeyPath,
+	})
+	if err != nil {
+		return receipt.HashCheck{}, receipt.SignatureCheck{}, receipt.ApprovalSigCheck{}, err
+	}
+
+	return *hc, *sc, *ac, nil
 }
