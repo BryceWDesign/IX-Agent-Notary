@@ -1,9 +1,37 @@
-# Dev keys (demo only)
+# Dev keys (local evaluation)
 
-These keys exist **only** so evaluators can run the examples end-to-end without extra setup.
+This directory exists so evaluators have a standard place for **locally-generated** dev keys.
 
-- `dev-key-001.seed` is a 32-byte Ed25519 seed (base64url, no padding).
-- `dev-key-001.pub`  is the matching 32-byte public key (base64url, no padding).
+Important:
+- **No private keys are committed to this repo.**
+- `*.seed` and `*.pub` under `keys/dev/` are gitignored by design.
+- Treat anything under `keys/dev/` as **demo-only**. Do not use in production.
 
-**DO NOT use these keys in production.**  
-Real deployments should use dedicated keys, protected by appropriate controls (KMS/HSM), with rotation.
+---
+
+## Generate dev keys + demo receipts (recommended)
+
+Run:
+
+```bash
+bash scripts/gen_demo_assets.sh
+
+That script will:
+
+generate a local ed25519 keypair (seed + public key), and
+
+generate example receipts under examples/receipts/, and
+
+strictly verify the results.
+
+Outputs (gitignored):
+
+keys/dev/dev-key-001.seed
+
+keys/dev/dev-key-001.pub
+
+examples/receipts/*.json
+
+Manual key generation (optional)
+go run ./cmd/ix-an keygen --out-seed keys/dev/dev-key-001.seed --out-pub keys/dev/dev-key-001.pub
+
