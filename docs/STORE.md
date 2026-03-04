@@ -8,6 +8,7 @@ Receipts can be stored as individual JSON files in a directory.
 Run:
 ```bash
 ix-an verify-dir <dir>
+
 This enforces:
 
 schema validity
@@ -16,7 +17,7 @@ strict core hashes
 
 strict signature verification
 
-(default) chain verification across receipts in the directory
+chain verification across receipts in the directory (when parent_receipt_id exists)
 
 2) Append-only log store (JSONL)
 
