@@ -1,0 +1,38 @@
+# OS / misc
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Node (if used later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if used later)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Go (if used later)
+bin/
+dist/
+*.exe
+*.out
+*.test
+
+# Build artifacts (generic)
+build/
+coverage/
+.tmp/
+tmp/
