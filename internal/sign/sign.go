@@ -20,6 +20,51 @@ type Options struct {
 	KeyID   string
 }
 
+// SignReceiptInPlace computes core hashes, ensures the signature envelope,
+// canonicalizes (excluding signature.value), and writes integrity.signature.value.
+func SignReceiptInPlace(r receipt.Receipt, keyPath string, keyID string) error {
+	if keyID == "" {
+		return errors.New("keyID is required")
+	}
+	if keyPath == "" {
+		keyPath = filepath.Join("keys", "dev", "dev-key-001.seed")
+	}
+
+	// Always compute and write core hashes (removes placeholders).
+	hc, err := receipt.ComputeCoreHashes(r)
+	if err != nil {
+		return err
+	}
+	if err := setCoreHashes(r, hc); err != nil {
+		return err
+	}
+
+	// Ensure integrity fields exist and set signature metadata.
+	if err := ensureSignatureEnvelope(r, keyID); err != nil {
+		return err
+	}
+
+	// Canonicalize (excluding signature.value), sign, then write signature.value.
+	msg, err := canonicalForSigning(r)
+	if err != nil {
+		return err
+	}
+
+	priv, err := crypto.LoadEd25519PrivateKeyFromSeedFile(keyPath)
+	if err != nil {
+		return err
+	}
+
+	sig := ed25519.Sign(priv, msg)
+	sigB64 := crypto.EncodeBase64URLNoPad(sig)
+
+	if err := setSignatureValue(r, sigB64); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Run(opts Options) error {
 	if opts.InPath == "" || opts.OutPath == "" {
 		return errors.New("sign requires InPath and OutPath")
@@ -36,35 +81,7 @@ func Run(opts Options) error {
 		return err
 	}
 
-	// Always compute and write core hashes (removes placeholders).
-	hc, err := receipt.ComputeCoreHashes(r)
-	if err != nil {
-		return err
-	}
-	if err := setCoreHashes(r, hc); err != nil {
-		return err
-	}
-
-	// Ensure integrity fields exist and set signature metadata.
-	if err := ensureSignatureEnvelope(r, opts.KeyID); err != nil {
-		return err
-	}
-
-	// Canonicalize (excluding signature.value), sign, then write signature.value.
-	msg, err := canonicalForSigning(r)
-	if err != nil {
-		return err
-	}
-
-	priv, err := crypto.LoadEd25519PrivateKeyFromSeedFile(opts.KeyPath)
-	if err != nil {
-		return err
-	}
-
-	sig := ed25519.Sign(priv, msg)
-	sigB64 := crypto.EncodeBase64URLNoPad(sig)
-
-	if err := setSignatureValue(r, sigB64); err != nil {
+	if err := SignReceiptInPlace(r, opts.KeyPath, opts.KeyID); err != nil {
 		return err
 	}
 
