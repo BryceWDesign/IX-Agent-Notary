@@ -44,15 +44,18 @@ Optional fields:
 
 ### Simulator emits signed approvals
 Run:
-```bash
-ix-an simulate ... --approve
 
-…and the simulator signs each approval object (demo uses the same key as receipt signing).
+```bash
+go run ./cmd/ix-an simulate --path docs/approved.txt --out /tmp/approved.receipt.json \
+  --approve --approver you@example.com --approval-type ticket
+
+The simulator signs the approval object (demo uses the same key as receipt signing).
 
 Verifier can enforce signed approvals
 
 Run:
-ix-an verify <receipt.json> --strict-approvals
+go run ./cmd/ix-an verify /tmp/approved.receipt.json --strict-approvals --strict-hashes --strict-signature
+
 Strict approvals means:
 
 if approvals exist, each approval must include a signature
@@ -65,8 +68,8 @@ Approvals turn receipts into auditable governance artifacts:
 
 SOC2 / ISO27001 evidence
 
-Change-management linkage (ticket approvals)
+change-management linkage (ticket approvals)
 
-Break-glass logging (incident time access)
+break-glass logging (incident-time access)
 
-Least-privilege + “two person rule” patterns (future extension)
+least-privilege + “two-person rule” patterns (future extension)
