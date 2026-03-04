@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"ix-agent-notary/internal/keygen"
 	"ix-agent-notary/internal/receipt"
 	"ix-agent-notary/internal/sign"
 	"ix-agent-notary/internal/simulate"
@@ -27,6 +28,8 @@ func main() {
 		signCmd(os.Args[2:])
 	case "simulate":
 		simulateCmd(os.Args[2:])
+	case "keygen":
+		keygenCmd(os.Args[2:])
 	case "store":
 		storeCmd(os.Args[2:])
 	case "help", "-h", "--help":
@@ -246,6 +249,32 @@ func simulateCmd(args []string) {
 	fmt.Println("OK: wrote simulated signed receipt:", *outPath)
 }
 
+func keygenCmd(args []string) {
+	fs := flag.NewFlagSet("keygen", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+
+	outSeed := fs.String("out-seed", "keys/dev/dev-key-001.seed", "output path for ed25519 seed (base64url, 32 bytes)")
+	outPub := fs.String("out-pub", "keys/dev/dev-key-001.pub", "output path for ed25519 public key (base64url, 32 bytes)")
+	force := fs.Bool("force", false, "overwrite existing key files")
+
+	if err := fs.Parse(args); err != nil {
+		os.Exit(2)
+	}
+
+	if err := keygen.GenerateEd25519Keypair(keygen.Options{
+		OutSeedPath: *outSeed,
+		OutPubPath:  *outPub,
+		Force:       *force,
+	}); err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("OK: wrote keypair:")
+	fmt.Println("  seed:", *outSeed)
+	fmt.Println("  pub: ", *outPub)
+}
+
 func storeCmd(args []string) {
 	if len(args) < 1 {
 		fmt.Fprintln(os.Stderr, "store requires a subcommand: append | verify-log")
@@ -418,6 +447,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  verify-dir    Validate all receipts in a directory (strict by default)")
 	fmt.Fprintln(os.Stderr, "  sign          Compute hashes + sign a receipt (ed25519)")
 	fmt.Fprintln(os.Stderr, "  simulate      Simulate a tool action through PolicyGate and emit a signed receipt")
+	fmt.Fprintln(os.Stderr, "  keygen        Generate a local dev ed25519 keypair (base64url seed+pub)")
 	fmt.Fprintln(os.Stderr, "  store         Append receipts to an append-only JSONL log and verify logs")
 	fmt.Fprintln(os.Stderr, "  help          Show this help")
 	fmt.Fprintln(os.Stderr)
