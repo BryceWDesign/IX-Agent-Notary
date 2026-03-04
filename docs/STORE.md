@@ -1,15 +1,21 @@
 # Receipt Store (v0)
 
-This repo supports a minimal “receipt store” pattern.
+IX-Agent-Notary supports a minimal “receipt store” pattern for keeping evidence.
+
+The goal is simple: receipts should be easy to write, easy to verify, and hard to tamper with.
+
+---
 
 ## 1) Directory store
-Receipts can be stored as individual JSON files in a directory.
 
-Run:
+Store receipts as individual `.json` files in a directory.
+
+Verify a directory strictly:
+
 ```bash
-ix-an verify-dir <dir>
+go run ./cmd/ix-an verify-dir examples/receipts --strict-approvals
 
-This enforces:
+What this enforces (strict by default in verify-dir):
 
 schema validity
 
@@ -17,20 +23,20 @@ strict core hashes
 
 strict signature verification
 
-chain verification across receipts in the directory (when parent_receipt_id exists)
+optional chain verification when parent_receipt_id exists
 
 2) Append-only log store (JSONL)
 
-Receipts can be ingested into an append-only JSON Lines log.
+You can ingest receipts into an append-only JSON Lines log.
 
-Append:
-ix-an store append --in <receipt.json> --log /path/to/receipts.jsonl
+Append (strictly verified before ingest):
+go run ./cmd/ix-an store append --in /tmp/approved.receipt.json --log /tmp/receipts.jsonl
 
-Verify the log:
-ix-an store verify-log --log /path/to/receipts.jsonl
+Verify the entire log:
+go run ./cmd/ix-an store verify-log --log /tmp/receipts.jsonl
 
 Notes:
 
-The log is “append-only” by convention; IX-Agent-Notary verifies tamper evidence via signatures.
+The JSONL log is “append-only” by convention; IX-Agent-Notary detects tampering via signatures (and optionally chain pointers).
 
 A real deployment should put the log behind immutability controls (WORM / S3 Object Lock / append-only DB).
