@@ -26,9 +26,33 @@ go run ./cmd/ix-an simulate --path .env               --out examples/receipts/de
 go run ./cmd/ix-an simulate --path docs/approved.txt  --out examples/receipts/approved.receipt.json  --key "$seed" --key-id "$kid" \
   --approve --approver you@example.com --approval-type ticket
 
+echo "== generating real chained example receipts =="
+chain_root="examples/receipts/chain.root.receipt.json"
+chain_child="examples/receipts/chain.child.receipt.json"
+
+go run ./cmd/ix-an simulate --path docs/chain-root.txt --out "$chain_root" --key "$seed" --key-id "$kid"
+
+chain_receipt_id="$(grep -m1 '"receipt_id"' "$chain_root" | sed -E 's/.*"receipt_id": "([^"]+)".*/\1/')"
+chain_trace_id="$(grep -m1 '"trace_id"' "$chain_root" | sed -E 's/.*"trace_id": "([^"]+)".*/\1/')"
+
+if [[ -z "$chain_receipt_id" || -z "$chain_trace_id" ]]; then
+  echo "FAIL: unable to extract chain metadata from $chain_root" >&2
+  exit 1
+fi
+
+go run ./cmd/ix-an simulate \
+  --path docs/chain-child.txt \
+  --out "$chain_child" \
+  --key "$seed" \
+  --key-id "$kid" \
+  --trace-id "$chain_trace_id" \
+  --step 2 \
+  --parent-receipt-id "$chain_receipt_id"
+
 echo "== strict verify of generated examples =="
-go run ./cmd/ix-an verify examples/receipts/minimal.receipt.json  --strict-hashes --strict-signature
-go run ./cmd/ix-an verify examples/receipts/denied.receipt.json   --strict-hashes --strict-signature
-go run ./cmd/ix-an verify examples/receipts/approved.receipt.json --strict-hashes --strict-signature --strict-approvals
+go run ./cmd/ix-an verify --strict-hashes --strict-signature examples/receipts/minimal.receipt.json
+go run ./cmd/ix-an verify --strict-hashes --strict-signature examples/receipts/denied.receipt.json
+go run ./cmd/ix-an verify --strict-hashes --strict-signature --strict-approvals examples/receipts/approved.receipt.json
+go run ./cmd/ix-an verify --strict-hashes --strict-signature --strict-chain "$chain_child"
 
 echo "OK: demo assets generated under examples/receipts (gitignored)"
