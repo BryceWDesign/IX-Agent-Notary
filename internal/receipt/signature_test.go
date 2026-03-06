@@ -7,25 +7,26 @@ import (
 	"ix-agent-notary/internal/testutil"
 )
 
-func TestExamples_StrictSignaturesPass(t *testing.T) {
-	root := testutil.RepoRoot(t)
+func TestGeneratedReceipts_StrictSignaturesPass(t *testing.T) {
+	seedPath, pubPath := testutil.TempEd25519Keypair(t, receiptTestKeyID)
 
 	cases := []struct {
-		name string
-		path string
+		name       string
+		targetPath string
 	}{
-		{"minimal", filepath.Join(root, "examples", "receipts", "minimal.receipt.json")},
-		{"denied", filepath.Join(root, "examples", "receipts", "denied.receipt.json")},
+		{name: "allow", targetPath: "docs/demo.txt"},
+		{name: "deny", targetPath: ".env"},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			r, err := Load(tc.path)
-			if err != nil {
-				t.Fatalf("Load: %v", err)
-			}
+			path := filepath.Join(t.TempDir(), tc.name+".receipt.json")
+			r := writeSignedTestReceipt(t, path, tc.targetPath, seedPath, receiptTestKeyID)
 
-			if _, err := ValidateSignature(r, SignatureValidationOptions{Strict: true}); err != nil {
+			if _, err := ValidateSignature(r, SignatureValidationOptions{
+				Strict:        true,
+				PublicKeyPath: pubPath,
+			}); err != nil {
 				t.Fatalf("ValidateSignature (strict): %v", err)
 			}
 		})
