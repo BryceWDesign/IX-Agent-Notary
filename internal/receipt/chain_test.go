@@ -1,19 +1,25 @@
 package receipt
 
 import (
-	"path/filepath"
 	"testing"
-
-	"ix-agent-notary/internal/testutil"
 )
 
-func TestDeniedReceipt_ChainVerifies(t *testing.T) {
-	root := testutil.RepoRoot(t)
-	dir := filepath.Join(root, "examples", "receipts")
+func TestGeneratedReceiptChain_Verifies(t *testing.T) {
+	dir, leafPath, pubPath := buildChainedReceiptFixture(t)
 
-	leaf, err := Load(filepath.Join(dir, "denied.receipt.json"))
+	leaf, err := Load(leafPath)
 	if err != nil {
 		t.Fatalf("Load leaf: %v", err)
+	}
+
+	if _, err := ValidateCoreHashes(leaf, HashValidationOptions{Strict: true}); err != nil {
+		t.Fatalf("ValidateCoreHashes leaf: %v", err)
+	}
+	if _, err := ValidateSignature(leaf, SignatureValidationOptions{
+		Strict:        true,
+		PublicKeyPath: pubPath,
+	}); err != nil {
+		t.Fatalf("ValidateSignature leaf: %v", err)
 	}
 
 	resolver, err := NewDirResolver(dir)
@@ -25,7 +31,10 @@ func TestDeniedReceipt_ChainVerifies(t *testing.T) {
 		if _, err := ValidateCoreHashes(r, HashValidationOptions{Strict: true}); err != nil {
 			return err
 		}
-		if _, err := ValidateSignature(r, SignatureValidationOptions{Strict: true}); err != nil {
+		if _, err := ValidateSignature(r, SignatureValidationOptions{
+			Strict:        true,
+			PublicKeyPath: pubPath,
+		}); err != nil {
 			return err
 		}
 		return nil
