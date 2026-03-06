@@ -41,12 +41,12 @@ func TestSimulate_WithApproval_ProducesStrictVerifiableReceipt(t *testing.T) {
 	}
 
 	if _, err := verify.Run(verify.Options{
-		ReceiptPath:      out,
-		SchemaPath:       filepath.Join(root, "spec", "receipt.schema.json"),
-		StrictHashes:     true,
-		StrictSignature:  true,
-		StrictApprovals:  true,
-		PublicKeyDirOpt:  filepath.Dir(pubPath),
+		ReceiptPath:     out,
+		SchemaPath:      filepath.Join(root, "spec", "receipt.schema.json"),
+		StrictHashes:    true,
+		StrictSignature: true,
+		StrictApprovals: true,
+		PublicKeyDirOpt: filepath.Dir(pubPath),
 	}); err != nil {
 		t.Fatalf("verify strict: %v", err)
 	}
@@ -107,13 +107,13 @@ func TestSimulate_WithExplicitChainFields_ProducesStrictChainChild(t *testing.T)
 	}
 
 	res, err := verify.Run(verify.Options{
-		ReceiptPath:      childPath,
-		SchemaPath:       filepath.Join(root, "spec", "receipt.schema.json"),
-		StrictHashes:     true,
-		StrictSignature:  true,
-		PublicKeyDirOpt:  filepath.Dir(pubPath),
-		StrictChain:      true,
-		ChainDir:         dir,
+		ReceiptPath:     childPath,
+		SchemaPath:      filepath.Join(root, "spec", "receipt.schema.json"),
+		StrictHashes:    true,
+		StrictSignature: true,
+		PublicKeyDirOpt: filepath.Dir(pubPath),
+		StrictChain:     true,
+		ChainDir:        dir,
 	})
 	if err != nil {
 		t.Fatalf("verify strict chain: %v", err)
