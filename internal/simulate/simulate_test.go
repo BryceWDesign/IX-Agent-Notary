@@ -46,7 +46,7 @@ func TestSimulate_WithApproval_ProducesStrictVerifiableReceipt(t *testing.T) {
 		StrictHashes:     true,
 		StrictSignature:  true,
 		StrictApprovals:  true,
-		PublicKeyPathOpt: pubPath,
+		PublicKeyDirOpt:  filepath.Dir(pubPath),
 	}); err != nil {
 		t.Fatalf("verify strict: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestSimulate_WithExplicitChainFields_ProducesStrictChainChild(t *testing.T)
 		SchemaPath:       filepath.Join(root, "spec", "receipt.schema.json"),
 		StrictHashes:     true,
 		StrictSignature:  true,
-		PublicKeyPathOpt: pubPath,
+		PublicKeyDirOpt:  filepath.Dir(pubPath),
 		StrictChain:      true,
 		ChainDir:         dir,
 	})
