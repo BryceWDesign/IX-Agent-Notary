@@ -1,88 +1,134 @@
 # Enterprise Pilot Guide (v0)
 
-This is the shortest “serious” path to evaluate IX-Agent-Notary in a real environment.
-
----
+This is the shortest serious path to evaluate IX-Agent-Notary in a real environment.
 
 ## Goal
-Prove that agent/tool execution can be:
-- **policy-enforced** (least privilege)
-- **auditable** (machine-verifiable receipts)
-- **tamper-evident** (hashes + signatures)
-- **governance-aware** (approvals evidence)
-- **incident-friendly** (trace + chain linkage)
 
----
+Prove that agent/tool execution can be:
+
+- **policy-enforced**
+- **auditable**
+- **tamper-evident**
+- **governance-aware**
+- **incident-friendly**
+
+In other words: prove that the organization can independently reconstruct and verify what happened.
 
 ## Recommended pilot architecture
 
 ### Minimal
+
 Agent → Notary wrapper → Tool(s)  
-Notary emits receipts → append-only store → CI/SIEM verifies receipts
+Notary emits receipts → receipt store → verifier in CI or ingest pipeline
 
 ### Better
-Agent → Intent Router / Tool Gateway → Notary enforcement+signing → Tool(s)  
-Receipts → WORM/immutable store + SIEM ingest (verify on ingest)
 
----
+Agent → tool gateway → Notary enforcement and signing → Tool(s)  
+Receipts → immutable or append-only store → SIEM or pipeline verifies on ingest
 
-## Step-by-step pilot
+## Pilot sequence
 
-### 1) Define a narrow allowlist policy
-Start with “deny by default” plus a tiny allowlist.
+### 1) Start with a narrow allowlist
+
+Begin with deny-by-default and a tiny safe allowlist.
 
 Use `policy/demo.policy.json` as a pattern:
-- allow only a safe prefix (like `docs/`)
-- explicitly deny sensitive targets (`.env`, secrets paths, IAM changes)
 
-### 2) Require receipts for all tool execution
-The **hard requirement** for meaningful evaluation is architectural:
-> Tools must not be reachable unless the call passes through Notary.
+- allow only a safe prefix such as `docs/`
+- explicitly deny sensitive targets such as `.env`
+- keep the policy small enough to review line by line
+
+### 2) Make Notary the required path
+
+The single most important architectural requirement is this:
+
+> Tools must not be reachable unless the call passes through the notary control point.
+
+If the agent can bypass the notary, the receipts become optional storytelling instead of mandatory evidence.
 
 ### 3) Run strict verification in CI
-Gate merges on verification:
+
+A credible pilot should gate merges or ingest on verification, including:
+
 - schema validity
 - strict hashes
-- strict signature
-- strict chain verification (when parent links exist)
+- strict signatures
+- strict chain verification when parent links exist
+- strict approvals when governance evidence is required
 
-This repo already runs strict checks in:
+This repo already demonstrates that posture through:
+
 - `.github/workflows/ci.yml`
 - `scripts/ci.sh`
 
-### 4) Store receipts immutably (directory or JSONL)
-- Directory mode:
-  - `ix-an verify-dir <dir>`
-- JSONL log mode:
-  - `ix-an store append --in <receipt.json> --log receipts.jsonl`
-  - `ix-an store verify-log --log receipts.jsonl`
+### 4) Store receipts in a way that is easy to verify
 
-In production: put logs behind immutability controls (WORM / Object Lock / append-only DB).
+Directory model:
 
-### 5) Validate “policy integrity”
-Require `policy.policy_hash` in receipts so the decision is tied to an exact policy version.
+```bash
+go run ./cmd/ix-an verify-dir --strict-approvals examples/receipts
+```
 
-### 6) Add approvals for high-risk actions
-For actions outside the normal allowlist:
-- require a ticket approval
-- embed the structured approval object in `policy.approvals[]`
+JSONL log model:
 
-This repo supports demo approvals via:
-- `ix-an simulate ... --approve --approver you@example.com --approval-type ticket`
+```bash
+go run ./cmd/ix-an store append --in /tmp/approved.receipt.json --log /tmp/receipts.jsonl
+go run ./cmd/ix-an store verify-log --log /tmp/receipts.jsonl
+```
 
----
+In production, place that storage behind immutability controls such as WORM or object lock.
 
-## Success criteria (what a buyer cares about)
-- You can **reconstruct** what happened from receipts alone
-- Receipts fail verification if tampered
-- Policies are enforceable and version-provable (`policy_hash`)
-- Approvals create defensible governance evidence
-- The system can be made “mandatory path” (no bypass)
+### 5) Tie decisions to exact policy content
 
----
+Require `policy.policy_hash` in receipts so a buyer can tell exactly which policy content produced the decision, not just a policy ID string.
 
-## Next enterprise-grade extensions (roadmap)
-- KMS/HSM signing + key rotation tooling
-- Approval signatures (multi-party / quorum)
-- Transparency log / immutable registry integration
-- Tool adapters (HTTP, GitHub, cloud APIs) with scoped tokens
+### 6) Add approvals for higher-risk actions
+
+For actions outside the normal low-risk allowlist, require structured approvals and verify them.
+
+Demo example:
+
+```bash
+go run ./cmd/ix-an simulate \
+  --path docs/approved.txt \
+  --out /tmp/approved.receipt.json \
+  --approve \
+  --approver you@example.com \
+  --approval-type ticket
+
+go run ./cmd/ix-an verify \
+  --strict-hashes \
+  --strict-signature \
+  --strict-approvals \
+  /tmp/approved.receipt.json
+```
+
+## Success criteria
+
+A serious buyer should be able to confirm all of the following:
+
+- receipts alone are enough to reconstruct the important parts of execution
+- tampering causes verification failure
+- policy identity is bound to the evidence
+- approval evidence is structured and verifiable
+- the notary can be made the mandatory path to execution
+
+## What usually convinces security and platform teams
+
+The repo becomes much more credible when evaluators can see that it:
+
+- builds cleanly from a fresh clone
+- tests cleanly without hidden local assets
+- generates demo evidence locally
+- rejects malformed or unverifiable receipts
+- can be slotted into existing CI or log-ingest controls
+
+## Near-term enterprise extensions
+
+Likely next steps after a pilot:
+
+- KMS or HSM signing
+- approval trust-domain separation
+- transparency-log or immutable-registry integration
+- tool adapters for real APIs and cloud controls
+- policy-pack distribution and attestation workflows
