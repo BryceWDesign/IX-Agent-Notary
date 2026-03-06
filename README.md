@@ -1,119 +1,207 @@
 # IX-Agent-Notary
-Proof-carrying agent/tool actions: **policy enforcement + cryptographically signed receipts** you can verify in CI/SIEM.
+
+Proof-carrying agent/tool actions: **policy enforcement + cryptographically signed receipts** that an independent verifier can check in CI, log ingestion, or incident response.
 
 ## Why this exists
-As soon as an AI agent can touch real systems (repos, CI/CD, cloud APIs, ticketing, secrets, production ops), the enterprise question becomes:
 
-**What exactly did the agent do, under what policy, with what approvals — and can we prove it?**
+As soon as an AI agent can touch real systems such as repos, CI/CD, cloud APIs, ticketing, secrets, or production ops, the real enterprise question becomes:
 
-IX-Agent-Notary is a small “trust layer” that makes that answer **machine-verifiable**.
+**What exactly did the agent do, under what policy, with what approvals, and can we prove it?**
 
-## What it does (plain English)
-1) A tool action is evaluated by **PolicyGate** (allow/deny, least privilege).  
-2) The notary emits a **receipt**: who/what/when, the exact policy decision, hashes, and optional approvals.  
-3) The receipt is canonicalized (RFC 8785 / JCS) and **signed** (ed25519 in v0).  
-4) A verifier independently checks: schema, hashes, signatures, approvals, and optional chain linkage.
+IX-Agent-Notary is a small trust layer meant to make that answer **machine-verifiable** instead of narrative.
 
-This is not “trust me bro” logging — it’s evidence you can verify.
+## What it does
 
-## 10-minute evaluation (recommended)
-Run the repo CI script locally (this is also what GitHub Actions runs):
+1. A tool action is evaluated by **PolicyGate** using an allow/deny policy.
+2. The notary emits a **receipt** containing actor, action, timing, policy decision, hashes, and optional approvals.
+3. The receipt is canonicalized with **RFC 8785 / JCS** and signed with **ed25519** in v0.
+4. A verifier can independently check schema validity, hashes, signatures, approvals, and optional chain linkage.
+
+This is not “trust me” logging. It is evidence that can be independently rejected if it is malformed, unsigned, tampered with, or incomplete.
+
+## 10-minute evaluation
+
+Run the same local validation path that CI runs:
 
 ```bash
 bash scripts/ci.sh
-What that does:
+```
 
-enforces gofmt, go vet, go test
+That script:
 
-generates local dev keys + demo receipts (gitignored)
+- enforces `gofmt`
+- runs `go vet`
+- builds the CLI
+- runs `go test ./...`
+- generates local dev keys and demo receipts
+- verifies generated receipts strictly
+- verifies the generated directory strictly
 
-strictly verifies the generated receipts directory
+Generate demo assets only:
 
-Generate demo assets only
+```bash
 bash scripts/gen_demo_assets.sh
-go run ./cmd/ix-an verify-dir examples/receipts --strict-approvals
+```
 
-Note: This repo intentionally ships no private keys and no pre-generated receipts.
-Demo keys/receipts are generated locally and are gitignored by design.
+Verify a generated directory of receipts strictly:
 
-Core capabilities (v0)
+```bash
+go run ./cmd/ix-an verify-dir --strict-approvals examples/receipts
+```
 
-Receipt schema (spec/receipt.schema.json) and draft spec (spec/receipts.md)
+Important notes:
 
-PolicyGate (demo policy pack pattern under policy/)
+- This repo intentionally ships **no private keys**.
+- This repo intentionally ships **no pre-generated receipts**.
+- Demo keys and demo receipts are generated locally and are **gitignored by design**.
 
-Signing (ed25519; canonical JSON via RFC 8785 / JCS)
+## Core capabilities (v0)
 
-Strict verification (schema + hashes + signature + approvals + optional chain)
+- Receipt schema: `spec/receipt.schema.json`
+- Draft receipt spec: `spec/receipts.md`
+- Policy evaluation pattern: `policy/demo.policy.json`
+- Receipt signing: `ed25519`
+- Canonical JSON: `RFC8785-JCS`
+- Strict verification: schema + hashes + signature + optional approvals + optional chain
+- Governance evidence via structured approvals: `docs/APPROVALS.md`
+- Receipt storage patterns: directory store + append-only JSONL log: `docs/STORE.md`
 
-Approvals as governance evidence (docs/APPROVALS.md)
+## CLI quickstart
 
-Receipt storage patterns: directory store + append-only JSONL log (docs/STORE.md)
+All commands below use `go run` directly, so no installation step is required.
 
-CLI (ix-an)
+### Verify one receipt
 
-All commands run via Go (no install required):
+```bash
+go run ./cmd/ix-an verify --strict-hashes --strict-signature /tmp/allow.receipt.json
+```
 
-Verify one receipt
+### Verify a directory of receipts
 
-go run ./cmd/ix-an verify <receipt.json> --strict-hashes --strict-signature
+`verify-dir` is strict on hashes and signatures by design. Add `--strict-approvals` when you want approval signatures enforced too.
 
-Verify a directory (strict by default)
-go run ./cmd/ix-an verify-dir <dir> --strict-approvals
+```bash
+go run ./cmd/ix-an verify-dir --strict-approvals examples/receipts
+```
 
-Simulate a tool action → emit a signed receipt
+### Simulate a tool action and emit a signed receipt
+
+```bash
 go run ./cmd/ix-an simulate --path docs/demo.txt --out /tmp/allow.receipt.json
-go run ./cmd/ix-an verify /tmp/allow.receipt.json --strict-hashes --strict-signature
+go run ./cmd/ix-an verify --strict-hashes --strict-signature /tmp/allow.receipt.json
+```
 
-Approvals demo (signed governance evidence in the receipt)
-go run ./cmd/ix-an simulate --path docs/approved.txt --out /tmp/approved.receipt.json \
-  --approve --approver you@example.com --approval-type ticket
+### Simulate a denied action
 
-go run ./cmd/ix-an verify /tmp/approved.receipt.json --strict-hashes --strict-signature --strict-approvals
+```bash
+go run ./cmd/ix-an simulate --path .env --out /tmp/deny.receipt.json
+go run ./cmd/ix-an verify --strict-hashes --strict-signature /tmp/deny.receipt.json
+```
 
-Append-only JSONL log (ingest strictly, then verify log)
+### Simulate a receipt with governance approval evidence
+
+```bash
+go run ./cmd/ix-an simulate \
+  --path docs/approved.txt \
+  --out /tmp/approved.receipt.json \
+  --approve \
+  --approver you@example.com \
+  --approval-type ticket
+
+go run ./cmd/ix-an verify \
+  --strict-hashes \
+  --strict-signature \
+  --strict-approvals \
+  /tmp/approved.receipt.json
+```
+
+### Simulate a chained child receipt
+
+A chained child receipt must share the parent trace ID and must reference the parent receipt ID.
+
+```bash
+go run ./cmd/ix-an simulate --path docs/chain-root.txt --out /tmp/chain.root.receipt.json
+```
+
+Then generate the child using the parent’s `receipt_id` and `trace.trace_id`:
+
+```bash
+go run ./cmd/ix-an simulate \
+  --path docs/chain-child.txt \
+  --out /tmp/chain.child.receipt.json \
+  --trace-id <parent-trace-id> \
+  --step 2 \
+  --parent-receipt-id <parent-receipt-id>
+```
+
+Verify the child with strict chain validation:
+
+```bash
+go run ./cmd/ix-an verify \
+  --strict-chain \
+  --chain-dir /tmp \
+  /tmp/chain.child.receipt.json
+```
+
+For a complete end-to-end chained example without manual extraction, use:
+
+```bash
+bash scripts/gen_demo_assets.sh
+```
+
+### Append-only JSONL log
+
+Append a receipt after strict verification:
+
+```bash
 go run ./cmd/ix-an store append --in /tmp/approved.receipt.json --log /tmp/receipts.jsonl
+```
+
+Verify the entire log:
+
+```bash
 go run ./cmd/ix-an store verify-log --log /tmp/receipts.jsonl
+```
 
-Where this fits (buyer mental model)
+## Where this fits
 
-IX-Agent-Notary is the enforcement + evidence layer that sits between “agents” and “tools”:
+IX-Agent-Notary is the enforcement-and-evidence layer that sits between **agents** and **tools**.
 
-prevents unsafe calls via allow/deny policy
+It is meant to:
 
-produces verifiable receipts for audit/compliance and incident response
+- prevent unsafe calls through policy
+- produce verifiable receipts for audit, compliance, and incident response
+- give buyers a narrow, reviewable trust boundary instead of asking them to trust the agent stack itself
 
-makes agent integrations survivable in regulated environments
+It is **not** a full agent framework.  
+It is **not** a SIEM.  
+It is the part you want to be able to verify.
 
-It is intentionally not a full agent framework and not a SIEM. It’s the part you want to trust.
+## Document map
 
-Docs (start here)
+Start here:
 
-Architecture: docs/ARCHITECTURE.md
+- Architecture: `docs/ARCHITECTURE.md`
+- Threat model: `docs/THREAT_MODEL.md`
+- Key management: `docs/KEY_MANAGEMENT.md`
+- Approvals: `docs/APPROVALS.md`
+- Receipt store: `docs/STORE.md`
+- Policy integrity: `docs/POLICY_INTEGRITY.md`
+- Enterprise pilot guide: `docs/ENTERPRISE_PILOT.md`
+- Design partner notes: `docs/DESIGN_PARTNER.md`
 
-Threat model: docs/THREAT_MODEL.md
+## License and commercial use
 
-Key management: docs/KEY_MANAGEMENT.md
+IX-Agent-Notary is source-available for evaluation under `LICENSE`.
 
-Approvals: docs/APPROVALS.md
+If you want to use it in production or any commercial context, you need a separate commercial license. See `COMMERCIAL.md` for trigger conditions and contact guidance.
 
-Receipt store: docs/STORE.md
+## Security
 
-Policy integrity notes: docs/POLICY_INTEGRITY.md
+Please report security issues according to `SECURITY.md`.
 
-Enterprise pilot guide: docs/ENTERPRISE_PILOT.md
+If you are evaluating agent governance and need receipts that security or compliance teams can independently verify, start with:
 
-Design partner notes: docs/DESIGN_PARTNER.md
-
-License / commercial use
-
-IX-Agent-Notary is source-available for evaluation under LICENSE.
-
-If you want to use this in production or any commercial context, you need a separate commercial license.
-See COMMERCIAL.md for the exact trigger conditions and contact path.
-
-Security
-
-Please report security issues per SECURITY.md.
-
-If you’re evaluating agent governance and want receipts that your security/compliance teams can actually verify, start with docs/ENTERPRISE_PILOT.md.
+- `docs/ENTERPRISE_PILOT.md`
+- `docs/THREAT_MODEL.md`
+- `docs/KEY_MANAGEMENT.md`
