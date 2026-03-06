@@ -31,6 +31,10 @@ type Options struct {
 	SignKeyPath string
 	SignKeyID   string
 
+	TraceID         string
+	Step            int
+	ParentReceiptID string
+
 	// Optional governance signal:
 	// If true, embed a single structured approval record in policy.approvals[].
 	IncludeApproval bool
@@ -62,6 +66,35 @@ func Run(opts Options) error {
 	}
 	if opts.SignKeyID == "" {
 		opts.SignKeyID = "dev-key-001"
+	}
+
+	opts.TraceID = strings.TrimSpace(opts.TraceID)
+	opts.ParentReceiptID = strings.TrimSpace(opts.ParentReceiptID)
+
+	if opts.Step == 0 {
+		opts.Step = 1
+	}
+	if opts.Step < 1 {
+		return fmt.Errorf("Step must be >= 1 (got %d)", opts.Step)
+	}
+
+	if opts.ParentReceiptID != "" {
+		if opts.Step < 2 {
+			return fmt.Errorf("Step must be >= 2 when ParentReceiptID is set (got %d)", opts.Step)
+		}
+		if opts.TraceID == "" {
+			return errors.New("TraceID is required when ParentReceiptID is set")
+		}
+	} else if opts.Step != 1 {
+		return fmt.Errorf("Step must be 1 when ParentReceiptID is empty (got %d)", opts.Step)
+	}
+
+	if opts.TraceID == "" {
+		traceID, err := id.NewUUIDv4()
+		if err != nil {
+			return err
+		}
+		opts.TraceID = traceID
 	}
 
 	if opts.IncludeApproval {
@@ -134,10 +167,6 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 	t := now.Format(time.RFC3339)
 
 	receiptID, err := id.NewUUIDv4()
-	if err != nil {
-		return nil, err
-	}
-	traceID, err := id.NewUUIDv4()
 	if err != nil {
 		return nil, err
 	}
@@ -233,6 +262,14 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 		policyObj["policy_source"] = dec.PolicySource
 	}
 
+	trace := map[string]any{
+		"trace_id": opts.TraceID,
+		"step":     opts.Step,
+	}
+	if opts.ParentReceiptID != "" {
+		trace["parent_receipt_id"] = opts.ParentReceiptID
+	}
+
 	r := receipt.Receipt{
 		"receipt_version": "0.1.0",
 		"receipt_id":      receiptID,
@@ -243,10 +280,7 @@ func buildReceipt(opts Options, dec policy.Decision) (receipt.Receipt, error) {
 			"completed_at": t,
 		},
 
-		"trace": map[string]any{
-			"trace_id": traceID,
-			"step":     1,
-		},
+		"trace": trace,
 
 		"actor": map[string]any{
 			"type":       "agent",
