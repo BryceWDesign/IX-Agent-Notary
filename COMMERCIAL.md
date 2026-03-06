@@ -1,39 +1,84 @@
-# Commercial licensing (IX-Agent-Notary)
+# Commercial licensing
 
-IX-Agent-Notary is **source-available for evaluation** under the terms in `LICENSE`.
+IX-Agent-Notary is source-available for **evaluation** under `LICENSE`.
 
-If you want to use this in **production** or any **commercial context**, you need a **separate commercial license**.
+If you want to use it in **production**, inside a **commercial product or service**, or as part of a **managed/internal platform**, you need a separate commercial license.
 
-## What triggers “commercial / production use”
-Any of the following typically requires a commercial license:
+## What typically triggers a commercial license
 
-- Running IX-Agent-Notary (or derivatives) in **production**
-- Using it to secure or audit **real operational workflows**
-- Embedding it into an internal platform, developer portal, or security control plane
-- Offering it as **SaaS / hosted API / managed service**
-- Shipping it inside a product or service (even if not directly sold)
-- Redistributing modified or unmodified builds to another team, customer, or third party
+Any of the following usually requires a commercial agreement:
 
-## How to request a commercial license / consult
-Open a GitHub Issue titled:
+- running IX-Agent-Notary or derivatives in production
+- using it to secure or audit real operational workflows
+- embedding it into an internal developer platform, control plane, or security layer
+- offering it as hosted software, SaaS, managed service, or API
+- redistributing modified or unmodified builds to another team, customer, or third party
+- shipping it inside a broader product even when it is not sold separately
 
-**Commercial licensing / design partner**
+## Fastest path to start a licensing or design-partner conversation
 
-Include:
-1. Organization name
-2. Intended use (internal control plane, CI/CD, cloud actions, SOC workflows, etc.)
-3. Scale (pilot users, services, expected receipt volume/day)
-4. Compliance needs (SOC2, ISO, HIPAA, FedRAMP, etc.)
-5. Timeline (evaluation window and desired production date)
+Open this GitHub issue template:
 
-> NOTE: If you prefer not to post publicly, create a minimal public issue that says
-> “Requesting private commercial licensing channel” and I will follow up off-thread.
+- `.github/ISSUE_TEMPLATE/commercial-licensing.md`
 
-## What a commercial agreement can include
-- Production grant + support terms
-- Security review package (threat model, architecture notes, hardening guidance)
-- Custom receipts/policy integrations (cloud IAM, SIEM/SOAR, ticketing, approvals)
-- Design-partner roadmap influence
+Use the title:
 
-This file is intentionally short: procurement/legal teams want a clear “when you need a license” trigger and a
-clear contact path.
+- `Commercial licensing / design partner`
+
+If you do **not** want to post operational details publicly, open a minimal public issue that says:
+
+- `Requesting private commercial channel`
+
+and include only:
+
+- organization name
+- general use category
+- preferred contact method
+
+From there, the conversation can move off the public thread.
+
+## Private contact path
+
+Primary professional contact path for business inquiries:
+
+- LinkedIn: `https://www.linkedin.com/in/brycewdesign/`
+
+Use the issue template first so the request is easy to triage and not lost.
+
+## What to include in a serious inquiry
+
+A strong intake request includes:
+
+1. organization name
+2. intended use
+3. deployment environment
+4. scale assumptions
+5. compliance or audit requirements
+6. evaluation timeline
+7. preferred contact method
+
+Examples of intended use:
+
+- agent actions in CI/CD
+- cloud control-plane actions
+- repo write controls
+- ticketing or approval workflows
+- incident-response evidence capture
+- compliance evidence pipelines
+
+## What a commercial engagement can cover
+
+Depending on fit, a commercial/design-partner engagement can include:
+
+- production-use grant
+- deployment and hardening guidance
+- policy-pack tailoring
+- receipt-shape adjustments for your audit needs
+- integration guidance for CI, log pipelines, approvals, or cloud tooling
+- design-partner feedback loop on roadmap priorities
+
+## Boundary note
+
+Evaluation access under `LICENSE` is not a production grant.
+
+If the use case matters operationally, compliance-wise, or customer-facing, treat it as commercial until explicitly licensed otherwise.
