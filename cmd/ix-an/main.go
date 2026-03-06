@@ -50,7 +50,8 @@ func verifyCmd(args []string) {
 	strictHashes := fs.Bool("strict-hashes", false, "fail if parameters_hash/output_hash are placeholders or missing")
 	strictSig := fs.Bool("strict-signature", false, "fail if signature is missing/placeholder or public key can't be resolved")
 	strictApprovals := fs.Bool("strict-approvals", false, "fail if any approval is missing a valid signature")
-	pubKeyPath := fs.String("pubkey", "", "optional path to an ed25519 public key (base64url). Overrides key lookup by key_id.")
+	pubKeyPath := fs.String("pubkey", "", "optional exact path to an ed25519 public key file (base64url). Highest-precedence lookup.")
+	pubKeyDir := fs.String("pubkey-dir", "", "optional directory containing <key_id>.pub. If unset, lookup defaults to keys/ then keys/dev/ relative to cwd.")
 	strictChain := fs.Bool("strict-chain", false, "verify parent_receipt_id chain (loads parent receipts from --chain-dir or receipt directory). Implies strict hashes+signature for the leaf.")
 	chainDir := fs.String("chain-dir", "", "directory to search for parent receipts (default: directory containing the receipt)")
 
@@ -81,6 +82,7 @@ func verifyCmd(args []string) {
 		StrictSignature:  *strictSig,
 		StrictApprovals:  *strictApprovals,
 		PublicKeyPathOpt: *pubKeyPath,
+		PublicKeyDirOpt:  *pubKeyDir,
 		StrictChain:      *strictChain,
 		ChainDir:         *chainDir,
 	})
@@ -125,7 +127,8 @@ func verifyDirCmd(args []string) {
 	fs.SetOutput(os.Stderr)
 
 	schemaPath := fs.String("schema", "", "path to receipt JSON Schema (default: spec/receipt.schema.json)")
-	pubKeyPath := fs.String("pubkey", "", "optional path to an ed25519 public key (base64url). Overrides key lookup by key_id.")
+	pubKeyPath := fs.String("pubkey", "", "optional exact path to an ed25519 public key file (base64url). Highest-precedence lookup.")
+	pubKeyDir := fs.String("pubkey-dir", "", "optional directory containing <key_id>.pub. If unset, lookup defaults to keys/ then keys/dev/ relative to cwd.")
 	strictApprovals := fs.Bool("strict-approvals", false, "fail if any approval is missing a valid signature")
 	strictChain := fs.Bool("strict-chain", true, "verify parent_receipt_id linkage for all receipts found (default: true)")
 
@@ -153,6 +156,7 @@ func verifyDirCmd(args []string) {
 		Dir:             dir,
 		SchemaPath:      *schemaPath,
 		PublicKeyPath:   *pubKeyPath,
+		PublicKeyDir:    *pubKeyDir,
 		StrictHashes:    true,
 		StrictSignature: true,
 		StrictApprovals: *strictApprovals,
@@ -319,7 +323,8 @@ func storeAppendCmd(args []string) {
 	inPath := fs.String("in", "", "input receipt JSON path (required)")
 	logPath := fs.String("log", "", "append-only JSONL log path (required)")
 	schemaPath := fs.String("schema", "", "path to receipt JSON Schema (default: spec/receipt.schema.json)")
-	pubKeyPath := fs.String("pubkey", "", "optional path to an ed25519 public key (base64url). Overrides key lookup by key_id.")
+	pubKeyPath := fs.String("pubkey", "", "optional exact path to an ed25519 public key file (base64url). Highest-precedence lookup.")
+	pubKeyDir := fs.String("pubkey-dir", "", "optional directory containing <key_id>.pub. If unset, lookup defaults to keys/ then keys/dev/ relative to cwd.")
 	strictApprovals := fs.Bool("strict-approvals", false, "fail if any approval is missing a valid signature (before ingest)")
 
 	if err := fs.Parse(args); err != nil {
@@ -334,7 +339,6 @@ func storeAppendCmd(args []string) {
 		os.Exit(2)
 	}
 
-	// Strictly verify before ingest.
 	if _, err := verify.Run(verify.Options{
 		ReceiptPath:      *inPath,
 		SchemaPath:       *schemaPath,
@@ -342,6 +346,7 @@ func storeAppendCmd(args []string) {
 		StrictSignature:  true,
 		StrictApprovals:  *strictApprovals,
 		PublicKeyPathOpt: *pubKeyPath,
+		PublicKeyDirOpt:  *pubKeyDir,
 	}); err != nil {
 		fmt.Fprintf(os.Stderr, "FAIL: receipt did not verify strictly; not ingesting: %v\n", err)
 		os.Exit(1)
@@ -367,7 +372,8 @@ func storeVerifyLogCmd(args []string) {
 
 	logPath := fs.String("log", "", "append-only JSONL log path (required)")
 	schemaPath := fs.String("schema", "", "path to receipt JSON Schema (default: spec/receipt.schema.json)")
-	pubKeyPath := fs.String("pubkey", "", "optional path to an ed25519 public key (base64url). Overrides key lookup by key_id.")
+	pubKeyPath := fs.String("pubkey", "", "optional exact path to an ed25519 public key file (base64url). Highest-precedence lookup.")
+	pubKeyDir := fs.String("pubkey-dir", "", "optional directory containing <key_id>.pub. If unset, lookup defaults to keys/ then keys/dev/ relative to cwd.")
 	strictChain := fs.Bool("strict-chain", true, "verify parent_receipt_id linkage within the log (default: true)")
 	strictApprovals := fs.Bool("strict-approvals", false, "fail if any approval is missing a valid signature")
 
@@ -413,13 +419,13 @@ func storeVerifyLogCmd(args []string) {
 		byID[rid] = r
 	}
 
-	// Strictly validate all receipts.
 	for rid, r := range byID {
 		_, _, _, verr := verify.ValidateReceiptObject(r, schema, verify.ReceiptValidationOptions{
 			StrictHashes:    true,
 			StrictSignature: true,
 			StrictApprovals: *strictApprovals,
 			PublicKeyPath:   *pubKeyPath,
+			PublicKeyDir:    *pubKeyDir,
 		})
 		if verr != nil {
 			fmt.Fprintf(os.Stderr, "FAIL: receipt %s failed verify: %v\n", rid, verr)
@@ -440,6 +446,7 @@ func storeVerifyLogCmd(args []string) {
 				StrictSignature: true,
 				StrictApprovals: *strictApprovals,
 				PublicKeyPath:   *pubKeyPath,
+				PublicKeyDir:    *pubKeyDir,
 			})
 			return verr
 		}
